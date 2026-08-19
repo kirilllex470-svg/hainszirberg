@@ -4,14 +4,15 @@ const path = require('path');
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 const HISTORY_FILE = path.join(__dirname, 'history.json');
+const FRIENDS_FILE = path.join(__dirname, 'friends.json');
 
-function readJSON(filePath) {
+function readJSON(filePath, defaultVal = {}) {
     try {
         if (fs.existsSync(filePath)) {
             return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
         }
     } catch (e) { console.error("Ошибка парсинга файла: " + filePath, e); }
-    return filePath === USERS_FILE ? {} : {}; // Теперь история — это объект { имя_комнаты: [сообщения] }
+    return defaultVal;
 }
 
 function writeJSON(filePath, data) {
@@ -20,8 +21,9 @@ function writeJSON(filePath, data) {
     } catch (e) { console.error("Ошибка записи файла: " + filePath, e); }
 }
 
-let usersDB = readJSON(USERS_FILE);
-let roomsDB = readJSON(HISTORY_FILE); // Хранит { roomName: [messages] }
+let usersDB = readJSON(USERS_FILE, {});
+let roomsDB = readJSON(HISTORY_FILE, {});
+let friendsDB = readJSON(FRIENDS_FILE, {}); // Структура: { username: ["друг1", "друг2"] }
 
 const server = http.createServer((req, res) => {
     // 1. Авторизация
@@ -55,19 +57,44 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 2. Отдача истории конкретной комнаты
-    if (req.url.startsWith('/api/messages') && req.method === 'GET') {
+    // 2. Получение списка друзей пользователя
+    if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-        const room = myUrl.searchParams.get('room');
-        
+        const user = myUrl.searchParams.get('user');
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
-        if (room && roomsDB[room]) {
-            return res.end(JSON.stringify(roomsDB[room]));
+        if (user && friendsDB[user.toLowerCase()]) {
+            return res.end(JSON.stringify(friendsDB[user.toLowerCase()]));
         }
         return res.end(JSON.stringify([]));
     }
 
-    // 3. Получение нового сообщения в комнату
+    // 3. Сохранение обновленного списка друзей (добавление/удаление)
+    if (req.url === '/api/friends/save' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            try {
+                const { user, friends } = JSON.parse(body);
+                if (user && Array.isArray(friends)) {
+                    friendsDB[user.toLowerCase()] = friends;
+                    writeJSON(FRIENDS_FILE, friendsDB);
+                }
+                res.writeHead(200); return res.end('OK');
+            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
+        });
+        return;
+    }
+
+    // 4. Отдача истории конкретной комнаты
+    if (req.url.startsWith('/api/messages') && req.method === 'GET') {
+        const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        const room = myUrl.searchParams.get('room');
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
+        if (room && roomsDB[room]) return res.end(JSON.stringify(roomsDB[room]));
+        return res.end(JSON.stringify([]));
+    }
+
+    // 5. Получение нового сообщения в комнату
     if (req.url === '/api/send' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -77,12 +104,9 @@ const server = http.createServer((req, res) => {
                 if (sender && room && text) {
                     const now = new Date();
                     const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                    
                     if (!roomsDB[room]) roomsDB[room] = [];
-                    
                     roomsDB[room].push({ sender, text, time: timeStr });
                     if (roomsDB[room].length > 150) roomsDB[room].shift();
-                    
                     writeJSON(HISTORY_FILE, roomsDB);
                 }
                 res.writeHead(200); return res.end('OK');
@@ -91,7 +115,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4. Отдача статики
+    // 6. Отдача статики
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
@@ -104,4 +128,4 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log(`Сервер чатов запущен на порту ${PORT}`); });
+server.listen(PORT, () => { console.log(`Сервер запущен на порту ${PORT}`); });
