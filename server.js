@@ -8,25 +8,33 @@ const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
-if (!fs.existsSync(UPLOADS_DIR)) { fs.mkdirSync(UPLOADS_DIR); }
+if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR);
+}
 
 function readJSON(filePath, defaultVal = {}) {
-    try { if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8')); } 
-    catch (e) { console.error("Ошибка чтения файла:", e); }
+    try {
+        if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    } catch (e) { console.error("Ошибка чтения:", e); }
     return defaultVal;
 }
 
 function writeJSON(filePath, data) {
-    try { fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8'); } 
-    catch (e) { console.error("Ошибка записи файла:", e); }
+    try {
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (e) { console.error("Ошибка записи:", e); }
 }
 
 let usersDB = readJSON(USERS_FILE, {});
 let roomsDB = readJSON(HISTORY_FILE, {});
 let friendsDB = readJSON(FRIENDS_FILE, {});
 
+const db = {
+    lastRead: {} // Хранилище временных меток прочтения чатов
+};
+
 const server = http.createServer((req, res) => {
-    // 1. Авторизация
+    // 1. Авторизация и регистрация
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -56,13 +64,53 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
-    // 2. Получение списка друзей
+    // 2. Получение списка друзей со счётчиком непрочитанных
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
-        if (user && friendsDB[user.toLowerCase()]) return res.end(JSON.stringify(friendsDB[user.toLowerCase()]));
+        
+        if (user) {
+            const myLowerName = user.toLowerCase();
+            const myFriends = friendsDB[myLowerName] || [];
+            const myReads = db.lastRead[myLowerName] || {};
+            
+            const friendsWithLastMsg = myFriends.map(friendName => {
+                const friendLower = friendName.toLowerCase();
+                const sortedRoom = [myLowerName, friendLower].sort();
+                const roomId = `${sortedRoom}_${sortedRoom}`;
+                const roomMessages = roomsDB[roomId] || [];
+                
+                let lastMsgText = "Нет сообщений";
+                let lastMsgTime = "";
+                let unreadCount = 0;
+                
+                const myLastReadTime = myReads[friendLower] || 0;
+                
+                if (roomMessages.length > 0) {
+                    const lastMsg = roomMessages[roomMessages.length - 1];
+                    if (lastMsg.type === 'audio') lastMsgText = "🎙️ Голосовое сообщение";
+                    else if (lastMsg.type === 'video') lastMsgText = "🎥 Видео-кружок";
+                    else lastMsgText = lastMsg.text;
+                    lastMsgTime = lastMsg.time || "";
+                    
+                    roomMessages.forEach(msg => {
+                        if (msg.sender.toLowerCase() === friendLower && (msg.timestamp || 0) > myLastReadTime) {
+                            unreadCount++;
+                        }
+                    });
+                }
+                
+                return {
+                    name: friendName,
+                    lastMessage: lastMsgText,
+                    time: lastMsgTime,
+                    unread: unreadCount
+                };
+            });
+            
+            return res.end(JSON.stringify(friendsWithLastMsg));
+        }
         return res.end(JSON.stringify([]));
     }
 
@@ -92,7 +140,25 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 5. Оптимизированный прием FormData (Текст/Аудио/Видео) под ограничения Render
+    // 4.5 Фиксация прочтения чата пользователем
+    if (req.url === '/api/messages/read' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            try {
+                const { user, partner } = JSON.parse(body);
+                if (user && partner) {
+                    const uLower = user.toLowerCase();
+                    const pLower = partner.toLowerCase();
+                    if (!db.lastRead[uLower]) db.lastRead[uLower] = {};
+                    db.lastRead[uLower][pLower] = Date.now();
+                }
+                res.writeHead(200); return res.end('OK');
+            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
+        });
+        return;
+    }
+    // 5. Прием сообщений (с поддержкой FormData)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -119,18 +185,15 @@ const server = http.createServer((req, res) => {
                     const name = matchName[1];
 
                     if (part.includes('filename="')) {
-                        // Это медиафайл
                         const fileMatch = part.match(/Content-Type:\s*([^\s\r\n]+)/);
                         const mime = fileMatch ? fileMatch[1] : '';
                         if (mime.includes('mp4')) fileExt = 'mp4';
                         else if (mime.includes('ogg')) fileExt = 'ogg';
 
-                        // Вырезаем чистый бинарник файла из потока FormData
                         const headerEnd = part.indexOf('\r\n\r\n') + 4;
                         const fileContentBinary = part.substring(headerEnd, part.length - 2);
                         fileBuffer = Buffer.from(fileContentBinary, 'binary');
                     } else {
-                        // Это обычное текстовое поле
                         const headerEnd = part.indexOf('\r\n\r\n') + 4;
                         const value = part.substring(headerEnd, part.length - 2).trim();
                         fields[name] = Buffer.from(value, 'binary').toString('utf-8');
@@ -153,7 +216,13 @@ const server = http.createServer((req, res) => {
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 if (!roomsDB[room]) roomsDB[room] = [];
                 
-                roomsDB[room].push({ sender, text: finalContent, type: type || 'text', time: timeStr });
+                roomsDB[room].push({ 
+                    sender, 
+                    text: finalContent, 
+                    type: type || 'text', 
+                    time: timeStr,
+                    timestamp: Date.now()
+                });
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 
                 writeJSON(HISTORY_FILE, roomsDB);
@@ -164,7 +233,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Стриминговая раздача сохраненных файлов медиа
+    // 6. Стриминговая раздача медиафайлов
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
@@ -197,4 +266,4 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log(`Сервер запущен под Render на порту ${PORT}`); });
+server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
