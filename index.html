@@ -13,8 +13,8 @@
         button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
         button:hover { background: #0056b3; }
     </style>
-    <!-- ЗАМЕНА: Загружаем скрипт прямо с нашего сервера на Timeweb, а не из внешнего CDN -->
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- Бронебойный CDN, который гарантированно загрузит io -->
+    <script src="https://cloudflare.com"></script>
 </head>
 <body>
 
@@ -29,35 +29,26 @@
 </div>
 
 <script>
-    // Подключаемся к текущему хосту
+    // Подключаемся к серверу
     const socket = io();
     const messagesDiv = document.getElementById('messages');
 
-    // Логирование успешного подключения для проверки
     socket.on('connect', () => {
-        console.log("Успешно подключились к серверу через транспорт:", socket.io.engine.transport.name);
+        console.log("Успешно подключились через транспорт:", socket.io.engine.transport.name);
     });
 
-    // Нажатие Enter в поле ввода
     document.getElementById('text').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') sendMessage();
     });
 
-    // Прием нового сообщения от сервера
     socket.on('chat message', function(msg) {
         const messageElement = document.createElement('div');
         messageElement.className = 'msg';
         messageElement.textContent = msg;
         messagesDiv.appendChild(messageElement);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Авто-скролл вниз
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
 
-    // Ошибки подключения (если будут)
-    socket.on('connect_error', (error) => {
-        console.error("Ошибка Socket.IO подключения. Пробуем альтернативные пути...", error);
-    });
-
-    // Функция отправки
     function sendMessage() {
         const nameInput = document.getElementById('username');
         const textInput = document.getElementById('text');
@@ -68,11 +59,8 @@
         if (text === '') return;
 
         const fullMessage = `${name}: ${text}`;
-        
-        // Отправляем структурированное событие
         socket.emit('chat message', fullMessage);
-        
-        textInput.value = ''; // Сброс поля
+        textInput.value = '';
     }
 </script>
 </body>
