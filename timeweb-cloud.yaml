@@ -1,0 +1,6 @@
+meta:
+  environment: nodejs
+  version: "20"
+run:
+  command: "node server.js"
+  port: 3000
