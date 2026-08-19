@@ -28,7 +28,8 @@
 
 <script>
     // Подключаемся к WebSocket серверу (используем текущий хост)
-    const socket = new WebSocket(`ws://${window.location.host}`);
+    const socket = new WebSocket(`wss://${window.location.host}`);
+
     const messagesDiv = document.getElementById('messages');
 
     // Нажатие Enter в поле ввода
