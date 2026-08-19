@@ -6,8 +6,6 @@
     <title>WhatsApp Premium</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, sans-serif; }
-        
-        /* Исправление высоты для мобильных */
         html, body { height: 100%; width: 100%; overflow: hidden; background: #0f172a; }
         body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #020617 100%); display: flex; justify-content: center; align-items: center; }
         
@@ -17,9 +15,7 @@
         .auth-btn { width: 100%; padding: 14px; background: #00a884; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         #auth-error { color: #f43f5e; font-size: 14px; margin-bottom: 12px; display: none; }
         
-        /* Исправленный контейнер приложения под мобильные */
         #app-screen { display: none; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); position: relative; flex-direction: row; overflow: hidden; }
-        
         .sidebar { width: 32%; min-width: 300px; height: 100%; background: #0f172a; border-right: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; z-index: 5; transition: transform 0.25s ease-in-out; }
         .sidebar-header { background: rgba(30, 41, 59, 0.5); height: 60px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         .sidebar-user { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 15px; color: #f8fafc; min-width: 0; }
@@ -65,7 +61,6 @@
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-        /* Идеальная адаптивность под мобилки (экраны едут внутрь без вылетов) */
         @media (max-width: 767px) {
             #app-screen { width: 100%; height: 100%; border-radius: 0; }
             .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; }
@@ -223,7 +218,7 @@
         document.getElementById('partner-avatar').textContent = currentPartner.substring(0,2);
         document.getElementById('chat-status').style.display = "block";
         const sorted = [currentUser.toLowerCase(), currentPartner.toLowerCase()].sort();
-        currentRoomId = `${sorted[0]}_${sorted[1]}`;
+        currentRoomId = `${sorted}_${sorted}`;
         
         lastMessagesCount = 0; 
         document.getElementById('text-input').removeAttribute('disabled');
@@ -262,7 +257,6 @@
         document.getElementById('video-btn').setAttribute('disabled', 'true');
     }
 
-    // Исправленная запись аудио под мобильный Chrome (использует webm)
     function toggleVoiceRecord() {
         const btn = document.getElementById('voice-btn');
         if (audioRecorder && audioRecorder.state === "recording") {
@@ -272,7 +266,6 @@
         } else {
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                 audioChunks = [];
-                // Универсальный тип для Android
                 let options = { mimeType: 'audio/webm; codecs=opus' };
                 if (!MediaRecorder.isTypeSupported(options.mimeType)) { options = { mimeType: 'audio/webm' }; }
                 
@@ -292,7 +285,6 @@
         }
     }
 
-    // Исправленная запись видео без обрывов контейнера
     function toggleVideoRecord() {
         const btn = document.getElementById('video-btn');
         const preview = document.getElementById('video-preview');
@@ -315,8 +307,14 @@
                 preview.srcObject = stream;
                 preview.style.display = 'block';
 
-                let options = { mimeType: 'video/webm; codecs=vp8,opus' };
-                if (!MediaRecorder.isTypeSupported(options.mimeType)) { options = { mimeType: 'video/webm' }; }
+                let options = {};
+                if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) {
+                    options = { mimeType: 'video/mp4;codecs=avc1,mp4a.40.2' };
+                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    options = { mimeType: 'video/mp4' };
+                } else {
+                    options = { mimeType: 'video/webm;codecs=vp8,opus' };
+                }
 
                 videoRecorder = new MediaRecorder(stream, options);
                 videoRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) videoChunks.push(e.data); };
@@ -327,7 +325,6 @@
                     reader.onloadend = () => sendMedia(reader.result, 'video');
                     if (videoStreamRef) { videoStreamRef.getTracks().forEach(track => track.stop()); }
                 };
-                // Запуск без нарезки фрагментов (start(10) ломал контейнер в Android Chrome)
                 videoRecorder.start();
                 btn.classList.add('recording');
                 btn.textContent = "🛑";
@@ -378,7 +375,6 @@
                     if (msg.type === 'audio') {
                         contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`;
                     } else if (msg.type === 'video') {
-                        // Обязательный muted для Android Chrome, иначе автоплей блокируется
                         contentHTML = `<video class="video-round" src="${msg.text}" controls playsinline autoplay muted loop></video>`;
                     } else {
                         contentHTML = `<div class="msg-text">${msg.text}</div>`;
