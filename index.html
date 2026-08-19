@@ -50,7 +50,9 @@
         .msg-text { padding-bottom: 4px; }
         .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); text-align: right; margin-top: 2px; }
         
-        .video-round { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #00a884; box-shadow: 0 4px 12px rgba(0,0,0,0.3); background: black; display: block; }
+        /* ИСПРАВЛЕНО: Кружок увеличен ровно в два раза, изменен цвет */
+        .video-round { width: 300px; height: 300px; border-radius: 50%; object-fit: cover; border: 4px solid #00a884; box-shadow: 0 6px 20px rgba(0,0,0,0.4); background: black; display: block; cursor: pointer; transition: transform 0.2s ease; }
+        .video-round:active { transform: scale(0.98); }
         .audio-player { outline: none; height: 40px; max-width: 220px; display: block; margin-top: 2px; }
         
         .input-container { background: #111827; height: 64px; display: flex; align-items: center; padding: 0 12px; gap: 8px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(0px, env(safe-area-inset-bottom)); }
@@ -68,7 +70,8 @@
             .chat-area { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; z-index: 4; }
             .back-btn { display: block; }
             .bubble { max-width: 85%; }
-            .video-round { width: 130px; height: 130px; }
+            /* Адаптивный размер кружка на телефонах */
+            .video-round { width: 260px; height: 260px; }
             .audio-player { max-width: 190px; }
         }
     </style>
@@ -401,7 +404,7 @@
                     if (msg.type === 'audio') {
                         contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`;
                     } else if (msg.type === 'video') {
-                        contentHTML = `<video class="video-round" src="${msg.text}" controls playsinline autoplay muted loop></video>`;
+                        contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop onclick="playVideoWithSound(this)"></video>`;
                     } else {
                         contentHTML = `<div class="msg-text">${msg.text}</div>`;
                     }
@@ -412,6 +415,29 @@
                 if (isScrolledDown) { messagesDiv.scrollTop = messagesDiv.scrollHeight; }
             })
             .catch(err => console.log("Сбой обновления"));
+    }
+
+    function playVideoWithSound(videoElement) {
+        if (!videoElement.muted) {
+            videoElement.muted = true;
+            videoElement.loop = true;
+            videoElement.play();
+            videoElement.style.borderColor = "#00a884";
+        } else {
+            videoElement.muted = false;
+            videoElement.loop = false;
+            videoElement.currentTime = 0;
+            videoElement.style.borderColor = "#f43f5e";
+            videoElement.play();
+
+            videoElement.onended = function() {
+                videoElement.muted = true;
+                videoElement.loop = true;
+                videoElement.currentTime = 0;
+                videoElement.play();
+                videoElement.style.borderColor = "#00a884";
+            };
+        }
     }
 </script>
 </body>
