@@ -1,9 +1,9 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { WebSocketServer } = require('ws');
+const { Server } = require('socket.io');
 
-// 1. Создаем HTTP-сервер для отдачи index.html
+// 1. Обычный сервер для отдачи одной веб-страницы
 const server = http.createServer((req, res) => {
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
@@ -20,40 +20,32 @@ const server = http.createServer((req, res) => {
     }
 });
 
-// 2. Создаем WebSocket-сервер БЕЗ привязки к порту (noServer: true)
-const wss = new WebSocketServer({ noServer: true });
-
-// Перехватываем событие перехода с HTTP на WebSockets (Handshake)
-server.on('upgrade', (request, socket, head) => {
-    const pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
-
-    // Слушаем сокеты ТОЛЬКО на пути /ws
-    if (pathname === '/ws') {
-        wss.handleUpgrade(request, socket, head, (ws) => {
-            wss.emit('connection', ws, request);
-        });
-    } else {
-        socket.destroy(); // Закрываем соединение, если путь не /ws
+// 2. Инициализируем Socket.IO поверх нашего HTTP сервера.
+// Добавляем настройки CORS, чтобы облако не блокировало запросы.
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
     }
 });
 
-wss.on('connection', (ws) => {
-    console.log('Новый пользователь подключился!');
+io.on('connection', (socket) => {
+    console.log('Пользователь подключился через Socket.IO');
 
-    ws.on('message', (message) => {
-        console.log(`Получено: ${message}`);
-        wss.clients.forEach((client) => {
-            if (client.readyState === 1) { 
-                client.send(message.toString());
-            }
-        });
+    // Слушаем событие 'chat message' от клиента
+    socket.on('chat message', (msg) => {
+        console.log(`Сообщение: ${msg}`);
+        // Пересылаем сообщение абсолютно всем подключенным
+        io.emit('chat message', msg);
     });
 
-    ws.on('close', () => console.log('Пользователь отключился.'));
+    socket.on('disconnect', () => {
+        console.log('Пользователь отключился');
+    });
 });
 
-// 3. Запускаем сервер на порту от хостинга
+// 3. Запуск на порту от Timeweb
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+    console.log(`Сервер работает на порту ${PORT}`);
 });
