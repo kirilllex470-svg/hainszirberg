@@ -11,75 +11,66 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(0, 168, 132, 0.5); }
-        #auth-screen { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 40px 30px; border-radius: 24px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); text-align: center; display: block; border: 1px solid rgba(255, 255, 255, 0.1); border-top: 6px solid #00a884; animation: fadeIn 0.4s ease-out; }
-        #auth-screen h2 { color: #f8fafc; margin-bottom: 24px; font-weight: 600; font-size: 26px; letter-spacing: -0.5px; }
-        .auth-input { width: 100%; padding: 14px 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; outline: none; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 15px; transition: 0.2s; }
-        .auth-input:focus { border-color: #00a884; box-shadow: 0 0 10px rgba(0, 168, 132, 0.3); }
-        .auth-btn { width: 100%; padding: 14px; background: #00a884; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3); }
-        .auth-btn:hover { background: #00ca9e; transform: translateY(-1px); }
-        #auth-error { color: #f43f5e; font-size: 14px; margin-bottom: 12px; display: none; font-weight: 500; }
-        #app-screen { display: none; width: 95%; max-width: 1200px; height: 90vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border-radius: 24px; position: relative; flex-direction: row; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); animation: fadeIn 0.5s ease-out; }
-        .sidebar { width: 32%; min-width: 300px; background: rgba(15, 23, 42, 0.4); border-right: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; }
+        
+        #auth-screen { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 40px 30px; border-radius: 24px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); text-align: center; display: block; border: 1px solid rgba(255, 255, 255, 0.1); border-top: 6px solid #00a884; }
+        #auth-screen h2 { color: #f8fafc; margin-bottom: 24px; font-weight: 600; font-size: 26px; }
+        .auth-input { width: 100%; padding: 14px 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; outline: none; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 15px; }
+        .auth-btn { width: 100%; padding: 14px; background: #00a884; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        #auth-error { color: #f43f5e; font-size: 14px; margin-bottom: 12px; display: none; }
+        
+        #app-screen { display: none; width: 95vw; max-width: 1200px; height: 90vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); border-radius: 24px; position: relative; flex-direction: row; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .sidebar { width: 32%; min-width: 300px; background: rgba(15, 23, 42, 0.4); border-right: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; z-index: 5; transition: transform 0.25s ease; }
         .sidebar-header { background: rgba(30, 41, 59, 0.5); height: 68px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         .sidebar-user { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 15px; color: #f8fafc; }
-        .logout-btn { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .logout-btn:hover { background: #f43f5e; color: white; }
-        .search-container { padding: 12px 16px; background: transparent; border-bottom: 1px solid rgba(255, 255, 255, 0.03); display: flex; gap: 8px; }
-        .search-input { flex: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 14px; outline: none; transition: 0.2s; }
-        .search-input:focus { border-color: #00a884; }
-        .add-friend-btn { background: rgba(0, 168, 132, 0.2); color: #00ca9e; border: 1px solid rgba(0, 168, 132, 0.3); padding: 0 16px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .add-friend-btn:hover { background: #00a884; color: white; }
+        .logout-btn { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; }
+        .search-container { padding: 12px 16px; display: flex; gap: 8px; }
+        .search-input { flex: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 14px; outline: none; }
+        .add-friend-btn { background: rgba(0, 168, 132, 0.2); color: #00ca9e; border: 1px solid rgba(0, 168, 132, 0.3); padding: 0 16px; border-radius: 12px; font-weight: 600; cursor: pointer; }
         .friends-list { flex: 1; overflow-y: auto; padding: 8px; }
-        .friend-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 16px; margin-bottom: 4px; cursor: pointer; transition: 0.2s ease; }
-        .friend-item:hover { background: rgba(255, 255, 255, 0.03); }
+        .friend-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 16px; margin-bottom: 4px; cursor: pointer; }
         .friend-item.active { background: rgba(0, 168, 132, 0.15); border: 1px solid rgba(0, 168, 132, 0.2); }
         .friend-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
         .friend-name { font-size: 15px; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .delete-friend-btn { background: transparent; border: none; color: #64748b; font-size: 18px; cursor: pointer; opacity: 0; transition: 0.2s; }
-        .friend-item:hover .delete-friend-btn { opacity: 1; }
-        .delete-friend-btn:hover { color: #f43f5e; }
+        .delete-friend-btn { background: transparent; border: none; color: #64748b; font-size: 18px; cursor: pointer; }
+        
         .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.2); overflow: hidden; }
-        .chat-header { background: rgba(30, 41, 59, 0.4); height: 68px; min-height: 68px; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); width: 100%; }
-        .avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #00a884, #0284c7); border-radius: 14px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 600; font-size: 15px; text-transform: uppercase; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .chat-header { background: rgba(30, 41, 59, 0.4); height: 68px; min-height: 68px; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #00a884, #0284c7); border-radius: 14px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 600; text-transform: uppercase; flex-shrink: 0; }
         .partner-title { color: #f8fafc; font-size: 16px; font-weight: 600; }
-        .partner-status { color: #00ca9e; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
-        .partner-status::before { content: ''; display: inline-block; width: 6px; height: 6px; background: #00ca9e; border-radius: 50%; box-shadow: 0 0 8px #00ca9e; }
-        #messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; background-image: radial-gradient(rgba(255,255,255,0.015) 1px, transparent 0); background-size: 24px 24px; }
-        .chat-placeholder { margin: auto; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.05); padding: 20px 30px; border-radius: 20px; color: #94a3b8; font-size: 14.5px; text-align: center; max-width: 400px; line-height: 22px; backdrop-filter: blur(8px); }
-        .message-row { display: flex; width: 100%; animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+        .partner-status { color: #00ca9e; font-size: 12px; }
+        #messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-placeholder { margin: auto; background: rgba(30, 41, 59, 0.6); padding: 20px 30px; border-radius: 20px; color: #94a3b8; font-size: 14px; text-align: center; max-width: 90%; }
+        .message-row { display: flex; width: 100%; }
         .message-row.my-msg { justify-content: flex-end; }
         .message-row.other-msg { justify-content: flex-start; }
-        .bubble { max-width: 65%; padding: 10px 16px; border-radius: 18px; font-size: 15px; color: #f1f5f9; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; flex-direction: column; word-break: break-word; line-height: 22px; }
-        .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; box-shadow: 0 4px 14px rgba(0, 168, 132, 0.2); }
-        .other-msg .bubble { background: rgba(30, 41, 59, 0.8); border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.03); }
+        .bubble { max-width: 70%; padding: 10px 16px; border-radius: 18px; font-size: 15px; color: #f1f5f9; position: relative; }
+        .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; }
+        .other-msg .bubble { background: rgba(30, 41, 59, 0.8); border-bottom-left-radius: 4px; }
         .msg-text { padding-bottom: 6px; padding-right: 35px; }
-        .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); position: absolute; bottom: 6px; right: 12px; font-weight: 500; }
-        .other-msg .msg-time { color: #64748b; }
-        .input-container { background: rgba(30, 41, 59, 0.4); height: 72px; min-height: 72px; display: flex; align-items: center; padding: 0 24px; gap: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); width: 100%; }
-        #text-input { flex: 1; height: 46px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; padding: 0 16px; font-size: 15px; outline: none; color: #f8fafc; transition: 0.2s; }
-        #text-input:focus { border-color: #00a884; }
-        #text-input:disabled { background: rgba(15, 23, 42, 0.2); cursor: not-allowed; opacity: 0.5; }
-        #send-btn { background: #00a884; border: none; color: white; font-size: 14px; font-weight: 600; cursor: pointer; padding: 12px 20px; border-radius: 12px; transition: 0.2s; box-shadow: 0 4px 10px rgba(0, 168, 132, 0.2); }
-        #send-btn:hover { background: #00ca9e; transform: scale(1.02); }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); position: absolute; bottom: 6px; right: 12px; }
+        .input-container { background: rgba(30, 41, 59, 0.4); height: 72px; display: flex; align-items: center; padding: 0 24px; gap: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+        #text-input { flex: 1; height: 46px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; padding: 0 16px; color: #f8fafc; outline: none; }
+        #send-btn { background: #00a884; border: none; color: white; padding: 12px 20px; border-radius: 12px; font-weight: 600; cursor: pointer; }
+
         @media (max-width: 767px) {
-            #app-screen { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; border: none; }
-            .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; height: 100%; z-index: 10; transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1); background: #0f172a; }
+            #app-screen { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; border: none; }
+            .sidebar { width: 100vw; min-width: 100vw; position: absolute; left: 0; top: 0; height: 100%; background: #0f172a; }
             .sidebar.hidden { transform: translateX(-100%); }
-            .chat-area { width: 100%; }
-            .chat-header { background: rgba(15, 23, 42, 0.8); height: 64px; }
-            .back-btn { display: block !important; color: #00a884; background: transparent; border: none; font-size: 24px; margin-right: 12px; cursor: pointer; outline: none; }
+            .chat-area { width: 100vw; height: 100%; position: absolute; left: 0; top: 0; }
+            .chat-header { background: #0f172a; height: 60px; min-height: 60px; padding: 0 12px; }
+            .back-btn { display: block !important; color: #00a884; background: transparent; border: none; font-size: 26px; margin-right: 8px; cursor: pointer; }
             .bubble { max-width: 85%; }
-            .input-container { height: 64px; padding: 0 16px; }
-            #text-input { font-size: 16px; }
+            .input-container { height: 60px; padding: 0 12px; gap: 8px; }
+            #text-input { font-size: 16px; height: 42px; }
+            #send-btn { padding: 10px 14px; }
         }
     </style>
 </head>
 <body>
+
     <div id="auth-screen">
         <h2>Вход в WhatsApp Neo</h2>
-        <div id="auth-error">Неверный пароль</div>
+        <div id="auth-error"></div>
         <input type="text" id="auth-user" class="auth-input" placeholder="Имя пользователя">
         <input type="password" id="auth-pass" class="auth-input" placeholder="Пароль">
         <button onclick="handleAuth()" class="auth-btn">Войти / Создать аккаунт</button>
@@ -95,7 +86,7 @@
                 <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
             <div class="search-container">
-                <input type="text" id="new-friend-name" class="search-input" placeholder="Поиск или новый друг...">
+                <input type="text" id="new-friend-name" class="search-input" placeholder="Поиск или новый friend...">
                 <button class="add-friend-btn" onclick="addFriend()">+</button>
             </div>
             <div class="friends-list" id="friends-box"></div>
@@ -111,7 +102,7 @@
                 </div>
             </div>
             <div id="messages">
-                <div class="chat-placeholder" id="placeholder-text">Выбери собеседника из списка контактов слева или добавь новый ник через верхнюю панель поиска, чтобы начать диалог.</div>
+                <div class="chat-placeholder" id="placeholder-text">Выберите друга слева, чтобы начать диалог.</div>
             </div>
             <div class="input-container">
                 <input type="text" id="text-input" placeholder="Выберите друга, чтобы начать переписку..." disabled>
@@ -119,23 +110,20 @@
             </div>
         </div>
     </div>
-
 <script>
     let currentUser = localStorage.getItem('chat_username') || null;
     let currentPartner = null;
     let currentRoomId = null;
     let friendsList = [];
     let updateInterval = null;
+    let lastMessagesCount = 0;
     const messagesDiv = document.getElementById('messages');
 
     if (currentUser) { showChat(); }
 
-    document.getElementById('text-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') sendMessage();
-    });
-    document.getElementById('new-friend-name').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addFriend();
-    });
+    document.getElementById('text-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
+    document.getElementById('new-friend-name').addEventListener('keypress', function(e) { if (e.key === 'Enter') addFriend(); });
+
     function handleAuth() {
         const username = document.getElementById('auth-user').value.trim();
         const password = document.getElementById('auth-pass').value.trim();
@@ -159,8 +147,6 @@
         document.getElementById('app-screen').style.display = 'flex';
         document.getElementById('my-name').textContent = currentUser;
         document.getElementById('my-avatar').textContent = currentUser.substring(0,2);
-        document.getElementById('auth-user').value = '';
-        document.getElementById('auth-pass').value = '';
         if (!updateInterval) { updateInterval = setInterval(fetchMessages, 1500); }
         loadFriends();
     }
@@ -211,6 +197,8 @@
         document.getElementById('chat-status').style.display = "block";
         const sorted = [currentUser.toLowerCase(), currentPartner.toLowerCase()].sort();
         currentRoomId = `${sorted}_${sorted}`;
+        
+        lastMessagesCount = 0; 
         document.getElementById('text-input').removeAttribute('disabled');
         document.getElementById('text-input').placeholder = "Написать сообщение...";
         if (window.innerWidth < 768) { document.getElementById('app-sidebar').classList.add('hidden'); }
@@ -262,6 +250,9 @@
         fetch(`/api/messages?room=${currentRoomId}`)
             .then(res => res.json())
             .then(data => {
+                if (data.length === lastMessagesCount) return; 
+                lastMessagesCount = data.length;
+
                 let isScrolledDown = messagesDiv.scrollHeight - messagesDiv.clientHeight <= messagesDiv.scrollTop + 50;
                 messagesDiv.innerHTML = '';
                 if(data.length === 0) { messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста. Начните диалог первым!</div>`; return; }
