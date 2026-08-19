@@ -3,8 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const { Server } = require('socket.io');
 
-// 1. Обычный сервер для отдачи одной веб-страницы
+// 1. Создаем базовый HTTP-сервер
 const server = http.createServer((req, res) => {
+    // Изменяем условие: отдаем index.html строго для главного пути "/"
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) {
@@ -15,13 +16,20 @@ const server = http.createServer((req, res) => {
             res.end(data);
         });
     } else {
+        // Если это служебный путь Socket.IO (например /socket.io/...),
+        // мы просто игнорируем его в HTTP-обработчике.
+        // Socket.IO сама перехватит этот запрос ниже.
+        if (req.url.startsWith('/socket.io/')) {
+            return; 
+        }
+        
+        // Для всех остальных неизвестных файлов отдаем 404
         res.writeHead(404);
         res.end('Не найдено');
     }
 });
 
-// 2. Инициализируем Socket.IO поверх нашего HTTP сервера.
-// Добавляем настройки CORS, чтобы облако не блокировало запросы.
+// 2. Инициализируем Socket.IO поверх нашего HTTP-сервера
 const io = new Server(server, {
     cors: {
         origin: "*",
@@ -34,8 +42,8 @@ io.on('connection', (socket) => {
 
     // Слушаем событие 'chat message' от клиента
     socket.on('chat message', (msg) => {
-        console.log(`Сообщение: ${msg}`);
-        // Пересылаем сообщение абсолютно всем подключенным
+        console.log(`Сообщение в консоли сервера: ${msg}`);
+        // Пересылаем сообщение абсолютно всем подключенным пользователям
         io.emit('chat message', msg);
     });
 
@@ -44,8 +52,8 @@ io.on('connection', (socket) => {
     });
 });
 
-// 3. Запуск на порту от Timeweb
+// 3. Запуск на порту от Timeweb Cloud
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Сервер работает на порту ${PORT}`);
+    console.log(`Сервер успешно запущен на порту ${PORT}`);
 });
