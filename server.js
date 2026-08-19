@@ -1,10 +1,17 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+
+// Автоматически создаем папку для медиафайлов, если её нет
+if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR);
+}
 
 function readJSON(filePath, defaultVal = {}) {
     try {
@@ -94,7 +101,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 5. Прием нового сообщения (включая голосовые и видео-кружки в Base64)
+    // 5. ИСПРАВЛЕННЫЙ прием сообщений (извлечение Base64 в файлы на диск)
     if (req.url === '/api/send' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -102,20 +109,59 @@ const server = http.createServer((req, res) => {
             try {
                 const { sender, room, text, type } = JSON.parse(body);
                 if (sender && room && text) {
+                    let finalUrlOrText = text;
+
+                    // Если это медиафайл (аудио или видео) отправленный в Base64
+                    if ((type === 'audio' || type === 'video') && text.startsWith('data:')) {
+                        // Извлекаем чистые бинарные данные из Base64 строки
+                        const matches = text.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+                        if (matches && matches.length === 3) {
+                            const buffer = Buffer.from(matches[2], 'base64');
+                            
+                            // Генерируем уникальное имя файла
+                            const fileExt = type === 'audio' ? 'webm' : 'webm'; 
+                            const fileName = `${type}_${crypto.randomBytes(8).toString('hex')}.${fileExt}`;
+                            const filePath = path.join(UPLOADS_DIR, fileName);
+                            
+                            // Асинхронно пишем файл на диск, чтобы сервер не зависал
+                            fs.writeFileSync(filePath, buffer);
+                            
+                            // Вместо Base64 сохраняем в историю чата короткую ссылку на файл
+                            finalUrlOrText = `/uploads/${fileName}`;
+                        }
+                    }
+
                     const now = new Date();
                     const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                     if (!roomsDB[room]) roomsDB[room] = [];
-                    roomsDB[room].push({ sender, text, type: type || 'text', time: timeStr });
+                    
+                    roomsDB[room].push({ sender, text: finalUrlOrText, type: type || 'text', time: timeStr });
                     if (roomsDB[room].length > 150) roomsDB[room].shift();
+                    
                     writeJSON(HISTORY_FILE, roomsDB);
                 }
                 res.writeHead(200); return res.end('OK');
-            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
+            } catch (e) { console.error(e); res.writeHead(400); res.end('Bad Request'); }
         });
         return;
     }
 
-    // 6. Главная страница
+    // 6. Раздача сохраненных медиафайлов из папки /uploads
+    if (req.url.startsWith('/uploads/')) {
+        const filePath = path.join(__dirname, req.url);
+        fs.readFile(filePath, (err, data) => {
+            if (err) { res.writeHead(404); return res.end('File Not Found'); }
+            
+            let contentType = 'application/octet-stream';
+            if (req.url.endsWith('.webm')) contentType = req.url.includes('audio') ? 'audio/webm' : 'video/webm';
+            
+            res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'max-age=86400' });
+            res.end(data);
+        });
+        return;
+    }
+
+    // 7. Главная страница
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
