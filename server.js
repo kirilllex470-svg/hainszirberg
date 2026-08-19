@@ -85,7 +85,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4. Отдача истории переписки комнаты
+    // 4. Отдача истории переписки
     if (req.url.startsWith('/api/messages') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const room = myUrl.searchParams.get('room');
@@ -94,7 +94,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 5. Прием нового сообщения (Поддерживает тяжелые голосовые и видео)
+    // 5. Прием нового сообщения (включая голосовые и видео-кружки в Base64)
     if (req.url === '/api/send' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -105,8 +105,6 @@ const server = http.createServer((req, res) => {
                     const now = new Date();
                     const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                     if (!roomsDB[room]) roomsDB[room] = [];
-                    
-                    // Сохраняем не только текст, но и тип сообщения (text, audio, video)
                     roomsDB[room].push({ sender, text, type: type || 'text', time: timeStr });
                     if (roomsDB[room].length > 150) roomsDB[room].shift();
                     writeJSON(HISTORY_FILE, roomsDB);
