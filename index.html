@@ -3,79 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hainszirberg</title>
+    <title>WhatsApp Neo Premium</title>
     <style>
-        * { margin: 0; padding: 0; box-shadow: none; box-sizing: border-box; font-family: Segoe UI, Helvetica Neue, Helvetica, Lucida Grande, Arial, Ubuntu, Cantarell, Fira Sans, sans-serif; }
-        body { background: #dadbd3; display: flex; justify-content: center; align-items: center; height: 100vh; height: -webkit-fill-available; overflow: hidden; }
-        
-        #auth-screen { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 360px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; display: block; border-top: 10px solid #00a884; }
-        #auth-screen h2 { color: #41525d; margin-bottom: 20px; font-weight: 500; font-size: 22px; }
-        .auth-input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #e9edef; border-radius: 6px; outline: none; background: #f0f2f5; font-size: 15px; }
-        .auth-btn { width: 100%; padding: 12px; background: #00a884; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        #auth-error { color: #ea0038; font-size: 14px; margin-bottom: 10px; display: none; }
-        
-        /* Двухпанельный макет */
-        #app-screen { display: none; width: 100%; max-width: 1100px; height: 95vh; background: #efeae2; box-shadow: 0 6px 18px rgba(0,0,0,0.1); border-radius: 3px; position: relative; flex-direction: row; overflow: hidden; }
-        
-        /* Боковая панель друзей */
-        .sidebar { width: 30%; min-width: 280px; background: white; border-right: 1px solid #e9edef; display: flex; flex-direction: column; }
-        .sidebar-header { background: #f0f2f5; height: 60px; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e9edef; }
-        .sidebar-user { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: #111b21; }
-        .logout-btn { background: #ea4335; color: white; border: none; padding: 5px 10px; border-radius: 15px; font-size: 11px; cursor: pointer; }
-        
-        /* Блок поиска и добавления */
-        .search-container { padding: 8px 12px; background: #fff; border-bottom: 1px solid #f0f2f5; display: flex; gap: 6px; }
-        .search-input { flex: 1; padding: 8px; border: 1px solid #e9edef; border-radius: 6px; background: #f0f2f5; font-size: 13px; outline: none; }
-        .add-friend-btn { background: #00a884; color: white; border: none; padding: 0 12px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        
-        /* Список друзей */
-        .friends-list { flex: 1; overflow-y: auto; background: white; }
-        .friend-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; border-bottom: 1px solid #f0f2f5; cursor: pointer; transition: 0.1s; }
-        .friend-item:hover, .friend-item.active { background: #f0f2f5; }
-        .friend-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
-        .friend-name { font-size: 15px; color: #111b21; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .delete-friend-btn { background: transparent; border: none; color: #999; font-size: 16px; cursor: pointer; padding: 0 5px; font-weight: bold; }
-        .delete-friend-btn:hover { color: #ea4335; }
-
-        /* Правая панель чата */
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #efeae2; overflow: hidden; }
-        .chat-header { background: #f0f2f5; height: 60px; min-height: 60px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #e9edef; width: 100%; }
-        
-        #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; background-image: url('https://githubusercontent.com'); background-color: #efeae2; -webkit-overflow-scrolling: touch; }
-        .chat-placeholder { margin: auto; background: rgba(255, 255, 255, 0.9); padding: 15px 25px; border-radius: 20px; color: #667781; font-size: 14px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 80%; }
-        
-        .message-row { display: flex; width: 100%; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #020617 100%); display: flex; justify-content: center; align-items: center; height: 100vh; height: -webkit-fill-available; overflow: hidden; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 168, 132, 0.5); }
+        #auth-screen { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 40px 30px; border-radius: 24px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); text-align: center; display: block; border: 1px solid rgba(255, 255, 255, 0.1); border-top: 6px solid #00a884; animation: fadeIn 0.4s ease-out; }
+        #auth-screen h2 { color: #f8fafc; margin-bottom: 24px; font-weight: 600; font-size: 26px; letter-spacing: -0.5px; }
+        .auth-input { width: 100%; padding: 14px 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; outline: none; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 15px; transition: 0.2s; }
+        .auth-input:focus { border-color: #00a884; box-shadow: 0 0 10px rgba(0, 168, 132, 0.3); }
+        .auth-btn { width: 100%; padding: 14px; background: #00a884; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3); }
+        .auth-btn:hover { background: #00ca9e; transform: translateY(-1px); }
+        #auth-error { color: #f43f5e; font-size: 14px; margin-bottom: 12px; display: none; font-weight: 500; }
+        #app-screen { display: none; width: 95%; max-width: 1200px; height: 90vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border-radius: 24px; position: relative; flex-direction: row; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); animation: fadeIn 0.5s ease-out; }
+        .sidebar { width: 32%; min-width: 300px; background: rgba(15, 23, 42, 0.4); border-right: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; }
+        .sidebar-header { background: rgba(30, 41, 59, 0.5); height: 68px; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .sidebar-user { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 15px; color: #f8fafc; }
+        .logout-btn { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .logout-btn:hover { background: #f43f5e; color: white; }
+        .search-container { padding: 12px 16px; background: transparent; border-bottom: 1px solid rgba(255, 255, 255, 0.03); display: flex; gap: 8px; }
+        .search-input { flex: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 14px; outline: none; transition: 0.2s; }
+        .search-input:focus { border-color: #00a884; }
+        .add-friend-btn { background: rgba(0, 168, 132, 0.2); color: #00ca9e; border: 1px solid rgba(0, 168, 132, 0.3); padding: 0 16px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .add-friend-btn:hover { background: #00a884; color: white; }
+        .friends-list { flex: 1; overflow-y: auto; padding: 8px; }
+        .friend-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 16px; margin-bottom: 4px; cursor: pointer; transition: 0.2s ease; }
+        .friend-item:hover { background: rgba(255, 255, 255, 0.03); }
+        .friend-item.active { background: rgba(0, 168, 132, 0.15); border: 1px solid rgba(0, 168, 132, 0.2); }
+        .friend-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .friend-name { font-size: 15px; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .delete-friend-btn { background: transparent; border: none; color: #64748b; font-size: 18px; cursor: pointer; opacity: 0; transition: 0.2s; }
+        .friend-item:hover .delete-friend-btn { opacity: 1; }
+        .delete-friend-btn:hover { color: #f43f5e; }
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.2); overflow: hidden; }
+        .chat-header { background: rgba(30, 41, 59, 0.4); height: 68px; min-height: 68px; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); width: 100%; }
+        .avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #00a884, #0284c7); border-radius: 14px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 600; font-size: 15px; text-transform: uppercase; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .partner-title { color: #f8fafc; font-size: 16px; font-weight: 600; }
+        .partner-status { color: #00ca9e; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+        .partner-status::before { content: ''; display: inline-block; width: 6px; height: 6px; background: #00ca9e; border-radius: 50%; box-shadow: 0 0 8px #00ca9e; }
+        #messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; background-image: radial-gradient(rgba(255,255,255,0.015) 1px, transparent 0); background-size: 24px 24px; }
+        .chat-placeholder { margin: auto; background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.05); padding: 20px 30px; border-radius: 20px; color: #94a3b8; font-size: 14.5px; text-align: center; max-width: 400px; line-height: 22px; backdrop-filter: blur(8px); }
+        .message-row { display: flex; width: 100%; animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
         .message-row.my-msg { justify-content: flex-end; }
         .message-row.other-msg { justify-content: flex-start; }
-        .bubble { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14.5px; color: #111b21; position: relative; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); display: flex; flex-direction: column; word-break: break-word; }
-        .my-msg .bubble { background: #d9fdd3; border-top-right-radius: 0; }
-        .other-msg .bubble { background: white; border-top-left-radius: 0; }
-        .msg-text { line-height: 19px; padding-bottom: 10px; padding-right: 25px; font-size: 14.5px; }
-        .msg-time { font-size: 10px; color: #667781; position: absolute; bottom: 4px; right: 8px; }
-        
-        .input-container { background: #f0f2f5; height: 62px; min-height: 62px; display: flex; align-items: center; padding: 5px 12px; gap: 10px; border-top: 1px solid #e9edef; width: 100%; }
-        #text-input { flex: 1; height: 40px; background: white; border: none; border-radius: 8px; padding: 0 12px; font-size: 15px; outline: none; color: #111b21; }
-        #text-input:disabled { background: #f0f2f5; cursor: not-allowed; }
-        #send-btn { background: transparent; border: none; color: #00a884; font-size: 15px; font-weight: bold; cursor: pointer; padding: 5px 8px; flex-shrink: 0; }
-        
-        /* Мобильная адаптивность */
+        .bubble { max-width: 65%; padding: 10px 16px; border-radius: 18px; font-size: 15px; color: #f1f5f9; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; flex-direction: column; word-break: break-word; line-height: 22px; }
+        .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; box-shadow: 0 4px 14px rgba(0, 168, 132, 0.2); }
+        .other-msg .bubble { background: rgba(30, 41, 59, 0.8); border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.03); }
+        .msg-text { padding-bottom: 6px; padding-right: 35px; }
+        .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); position: absolute; bottom: 6px; right: 12px; font-weight: 500; }
+        .other-msg .msg-time { color: #64748b; }
+        .input-container { background: rgba(30, 41, 59, 0.4); height: 72px; min-height: 72px; display: flex; align-items: center; padding: 0 24px; gap: 14px; border-top: 1px solid rgba(255, 255, 255, 0.05); width: 100%; }
+        #text-input { flex: 1; height: 46px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; padding: 0 16px; font-size: 15px; outline: none; color: #f8fafc; transition: 0.2s; }
+        #text-input:focus { border-color: #00a884; }
+        #text-input:disabled { background: rgba(15, 23, 42, 0.2); cursor: not-allowed; opacity: 0.5; }
+        #send-btn { background: #00a884; border: none; color: white; font-size: 14px; font-weight: 600; cursor: pointer; padding: 12px 20px; border-radius: 12px; transition: 0.2s; box-shadow: 0 4px 10px rgba(0, 168, 132, 0.2); }
+        #send-btn:hover { background: #00ca9e; transform: scale(1.02); }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 767px) {
-            #app-screen { height: 100vh; height: 100dvh; max-width: 100%; border-radius: 0; box-shadow: none; }
-            .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; height: 100%; z-index: 10; transition: 0.2s; }
+            #app-screen { width: 100%; height: 100vh; height: 100dvh; border-radius: 0; border: none; }
+            .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; height: 100%; z-index: 10; transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1); background: #0f172a; }
             .sidebar.hidden { transform: translateX(-100%); }
             .chat-area { width: 100%; }
-            .chat-header { background: #00a884; }
-            .chat-header .user-info h4 { color: white; }
-            .chat-header .user-info p { color: #e1f5fe; }
-            .chat-header .avatar { background: #008f72; border: 1px solid #d9fdd3; }
-            .back-btn { display: block !important; color: white; background: transparent; border: none; font-size: 20px; margin-right: 10px; cursor: pointer; }
+            .chat-header { background: rgba(15, 23, 42, 0.8); height: 64px; }
+            .back-btn { display: block !important; color: #00a884; background: transparent; border: none; font-size: 24px; margin-right: 12px; cursor: pointer; outline: none; }
+            .bubble { max-width: 85%; }
+            .input-container { height: 64px; padding: 0 16px; }
+            #text-input { font-size: 16px; }
         }
     </style>
 </head>
 <body>
-
     <div id="auth-screen">
-        <h2>Вход в hainszirberg</h2>
+        <h2>Вход в WhatsApp Neo</h2>
         <div id="auth-error">Неверный пароль</div>
         <input type="text" id="auth-user" class="auth-input" placeholder="Имя пользователя">
         <input type="password" id="auth-pass" class="auth-input" placeholder="Пароль">
@@ -83,46 +86,40 @@
     </div>
 
     <div id="app-screen">
-        <!-- Левая панель: Списки контактов -->
         <div class="sidebar" id="app-sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-user">
-                    <div class="avatar" style="width:32px; height:32px; font-size:13px;" id="my-avatar">?</div>
-                    <span id="my-name">Я</span>
+                    <div class="avatar" style="width:36px; height:36px; font-size:13px; border-radius:10px;" id="my-avatar">?</div>
+                    <span id="my-name">Профиль</span>
                 </div>
                 <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
             <div class="search-container">
-                <input type="text" id="new-friend-name" class="search-input" placeholder="Ввидите индификатор пользователя...">
-                <button class="add-friend-btn" onclick="addFriend()">Добавить</button>
+                <input type="text" id="new-friend-name" class="search-input" placeholder="Поиск или новый друг...">
+                <button class="add-friend-btn" onclick="addFriend()">+</button>
             </div>
-            <div class="friends-list" id="friends-box">
-                <!-- Сюда рендерятся друзья -->
-            </div>
+            <div class="friends-list" id="friends-box"></div>
         </div>
 
-        <!-- Правая панель: Окно сообщений чата -->
         <div class="chat-area">
             <div class="chat-header">
-                <!-- Кнопка назад для мобилок -->
                 <button class="back-btn" style="display:none;" onclick="closeChatMobile()">&larr;</button>
-                <div class="avatar" id="partner-avatar">?</div>
+                <div class="avatar" style="margin-right:12px;" id="partner-avatar">?</div>
                 <div class="user-info">
-                    <h4 id="partner-display-name">Чат не выбран</h4>
-                    <p id="chat-status">Выберите друга слева</p>
+                    <h4 class="partner-title" id="partner-display-name">Чат не выбран</h4>
+                    <p class="partner-status" id="chat-status" style="display:none;">в сети</p>
                 </div>
             </div>
-            
             <div id="messages">
-                <div class="chat-placeholder" id="placeholder-text">Выберите друга из списка контактов слева или добавьте нового, чтобы начать переписку.</div>
+                <div class="chat-placeholder" id="placeholder-text">Выбери собеседника из списка контактов слева или добавь новый ник через верхнюю панель поиска, чтобы начать диалог.</div>
             </div>
-            
             <div class="input-container">
-                <input type="text" id="text-input" placeholder="Выберите друга чтобы писать..." disabled>
+                <input type="text" id="text-input" placeholder="Выберите друга, чтобы начать переписку..." disabled>
                 <button id="send-btn" onclick="sendMessage()">ОТПРАВИТЬ</button>
             </div>
         </div>
     </div>
+
 <script>
     let currentUser = localStorage.getItem('chat_username') || null;
     let currentPartner = null;
@@ -139,14 +136,11 @@
     document.getElementById('new-friend-name').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') addFriend();
     });
-
     function handleAuth() {
         const username = document.getElementById('auth-user').value.trim();
         const password = document.getElementById('auth-pass').value.trim();
         const errorDiv = document.getElementById('auth-error');
-
-        if (!username || !password) { errorDiv.textContent = "Заполните поля!"; errorDiv.style.display = "block"; return; }
-
+        if (!username || !password) { errorDiv.textContent = "Заполните все поля!"; errorDiv.style.display = "block"; return; }
         fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -154,9 +148,8 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) {
-                currentUser = username; localStorage.setItem('chat_username', username); showChat();
-            } else { errorDiv.textContent = data.message; errorDiv.style.display = "block"; }
+            if (data.success) { currentUser = username; localStorage.setItem('chat_username', username); showChat(); }
+            else { errorDiv.textContent = data.message; errorDiv.style.display = "block"; }
         })
         .catch(() => { errorDiv.textContent = "Ошибка сервера"; errorDiv.style.display = "block"; });
     }
@@ -166,27 +159,19 @@
         document.getElementById('app-screen').style.display = 'flex';
         document.getElementById('my-name').textContent = currentUser;
         document.getElementById('my-avatar').textContent = currentUser.substring(0,2);
-        
         document.getElementById('auth-user').value = '';
         document.getElementById('auth-pass').value = '';
-        
-        // Каждые 1.5 секунды стягиваем сообщения
         if (!updateInterval) { updateInterval = setInterval(fetchMessages, 1500); }
-        loadFriends(); // Загружаем список друзей из JSON базы
+        loadFriends();
     }
 
-    // Загрузка списка друзей с сервера
     function loadFriends() {
         if (!currentUser) return;
         fetch(`/api/friends/get?user=${currentUser}`)
             .then(res => res.json())
-            .then(data => {
-                friendsList = data;
-                renderFriends();
-            });
+            .then(data => { friendsList = data; renderFriends(); });
     }
 
-    // Сохранение списка друзей (добавление / удаление) на сервер
     function saveFriendsOnServer() {
         fetch('/api/friends/save', {
             method: 'POST',
@@ -200,26 +185,19 @@
         const name = input.value.trim();
         if (!name) return;
         if (name.toLowerCase() === currentUser.toLowerCase()) { alert("Нельзя добавить себя!"); return; }
-        
-        // Проверяем дубликат
-        if (friendsList.some(f => f.toLowerCase() === name.toLowerCase())) { alert("Этот пользователь уже есть в друзьях!"); return; }
-        
+        if (friendsList.some(f => f.toLowerCase() === name.toLowerCase())) { alert("Этот пользователь уже в списке!"); return; }
         friendsList.push(name);
         input.value = '';
         saveFriendsOnServer();
     }
-
     function deleteFriend(name, event) {
-        event.stopPropagation(); // Отменяем нажатие на сам элемент чата
-        if (!confirm(`Удалить ${name} из списка друзей?`)) return;
-        
+        event.stopPropagation();
+        if (!confirm(`Удалить ${name} из контактов?`)) return;
         friendsList = friendsList.filter(f => f.toLowerCase() !== name.toLowerCase());
-        
-        // Если удалили того, с кем сейчас переписываемся — закрываем чат
         if (currentPartner && currentPartner.toLowerCase() === name.toLowerCase()) {
             currentPartner = null; currentRoomId = null;
             document.getElementById('partner-display-name').textContent = "Чат не выбран";
-            document.getElementById('chat-status').textContent = "Выберите друга слева";
+            document.getElementById('chat-status').style.display = "none";
             document.getElementById('text-input').setAttribute('disabled', 'true');
             messagesDiv.innerHTML = `<div class="chat-placeholder">Выберите друга из списка контактов слева.</div>`;
         }
@@ -230,17 +208,12 @@
         currentPartner = partner;
         document.getElementById('partner-display-name').textContent = currentPartner;
         document.getElementById('partner-avatar').textContent = currentPartner.substring(0,2);
-        document.getElementById('chat-status').textContent = `в сети`;
-        
+        document.getElementById('chat-status').style.display = "block";
         const sorted = [currentUser.toLowerCase(), currentPartner.toLowerCase()].sort();
         currentRoomId = `${sorted}_${sorted}`;
-        
         document.getElementById('text-input').removeAttribute('disabled');
-        document.getElementById('text-input').placeholder = "Введите сообщение...";
-        
-        // На мобилках прячем сайдбар при выборе чата
+        document.getElementById('text-input').placeholder = "Написать сообщение...";
         if (window.innerWidth < 768) { document.getElementById('app-sidebar').classList.add('hidden'); }
-        
         messagesDiv.innerHTML = '';
         fetchMessages();
         renderFriends();
@@ -251,23 +224,13 @@
     function renderFriends() {
         const box = document.getElementById('friends-box');
         box.innerHTML = '';
-        if (friendsList.length === 0) {
-            box.innerHTML = `<div style="padding:15px; text-align:center; color:#999; font-size:13px;">Список друзей пуст</div>`;
-            return;
-        }
+        if (friendsList.length === 0) { box.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b; font-size:13px;">Список контактов пуст</div>`; return; }
         friendsList.forEach(friend => {
             const isActive = currentPartner && currentPartner.toLowerCase() === friend.toLowerCase();
             const item = document.createElement('div');
             item.className = `friend-item ${isActive ? 'active' : ''}`;
             item.onclick = () => selectChat(friend);
-            
-            item.innerHTML = `
-                <div class="friend-info">
-                    <div class="avatar" style="width:36px; height:36px; font-size:14px; background:#00a884; color:white;">${friend.substring(0,2)}</div>
-                    <div class="friend-name">${friend}</div>
-                </div>
-                <button class="delete-friend-btn" onclick="deleteFriend('${friend}', event)">&times;</button>
-            `;
+            item.innerHTML = `<div class="friend-info"><div class="avatar" style="width:36px; height:36px; font-size:13px; background:rgba(255,255,255,0.05); color:#00ca9e; border:1px solid rgba(255,255,255,0.05); border-radius:10px;">${friend.substring(0,2)}</div><div class="friend-name">${friend}</div></div><button class="delete-friend-btn" onclick="deleteFriend('${friend}', event)">&times;</button>`;
             box.appendChild(item);
         });
     }
@@ -285,7 +248,6 @@
         const textInput = document.getElementById('text-input');
         const text = textInput.value.trim();
         if (text === '' || !currentUser || !currentRoomId) return;
-
         fetch('/api/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -302,20 +264,12 @@
             .then(data => {
                 let isScrolledDown = messagesDiv.scrollHeight - messagesDiv.clientHeight <= messagesDiv.scrollTop + 50;
                 messagesDiv.innerHTML = '';
-                if(data.length === 0) {
-                    messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста. Напишите первым!</div>`;
-                    return;
-                }
+                if(data.length === 0) { messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста. Начните диалог первым!</div>`; return; }
                 data.forEach(msg => {
                     const row = document.createElement('div');
                     const isMy = msg.sender === currentUser;
                     row.className = `message-row ${isMy ? 'my-msg' : 'other-msg'}`;
-                    row.innerHTML = `
-                        <div class="bubble">
-                            <div class="msg-text">${msg.text}</div>
-                            <div class="msg-time">${msg.time}</div>
-                        </div>
-                    `;
+                    row.innerHTML = `<div class="bubble"><div class="msg-text">${msg.text}</div><div class="msg-time">${msg.time}</div></div>`;
                     messagesDiv.appendChild(row);
                 });
                 if (isScrolledDown) { messagesDiv.scrollTop = messagesDiv.scrollHeight; }
