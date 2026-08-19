@@ -3,8 +3,35 @@ const fs = require('fs');
 const path = require('path');
 const { Server } = require('socket.io');
 
-// Максимально простой сервер: на любой запрос шлем index.html
+// Массив для хранения истории сообщений в памяти сервера
+let dbMessages = [];
+
 const server = http.createServer((req, res) => {
+    // 1. Отдаем список сообщений для фонового обновления
+    if (req.url === '/messages-list' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify(dbMessages));
+    }
+
+    // 2. Принимаем сообщения через HTTP POST (если сокет заблокирован прокси-сервером)
+    if (req.url === '/' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk.toString(); });
+        req.on('end', () => {
+            try {
+                const data = JSON.parse(body);
+                if (data.message) {
+                    dbMessages.push(data.message);
+                    if(dbMessages.length > 100) dbMessages.shift(); // Храним только последние 100
+                }
+            } catch(e) {}
+            res.writeHead(200);
+            res.end('OK');
+        });
+        return;
+    }
+
+    // 3. Отдаем главный интерфейс index.html
     fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
         if (err) {
             res.writeHead(500);
@@ -12,26 +39,6 @@ const server = http.createServer((req, res) => {
         }
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(data);
-    });
-});
-
-// Инициализируем Socket.IO
-const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-});
-
-io.on('connection', (socket) => {
-    console.log('User connected');
-
-    socket.on('chat message', (msg) => {
-        io.emit('chat message', msg);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected');
     });
 });
 
