@@ -17,7 +17,7 @@
 <body>
 
 <div id="chat">
-    <h3>Мини-Мессенджер (Автономный)</h3>
+    <h3>Мини-Мессенджер (HTTP API)</h3>
     <div id="messages"></div>
     <div id="input-area">
         <input type="text" id="username" placeholder="Ваше имя" style="width: 30%;">
@@ -27,19 +27,14 @@
 </div>
 
 <script>
-    // Полный встроенный код Socket.IO клиента, чтобы не зависеть от CDN и серверов
-    !function(t,e){"object"==typeof exports&&"undefined"!=typeof module?module.exports=e():"function"==typeof define&&define.amd?define(e):(t="undefined"!=typeof globalThis?globalThis:t||self).io=e()}(this,(function(){"use strict";return function t(e,n,o){function r(i,c){if(!n[i]){if(!e[i]){var s="function"==typeof require&&require;if(!c&&s)return s(i,!0);if(a)return a(i,!0);var u=new Error("Cannot find module '"+i+"'");throw u.code="MODULE_NOT_FOUND",u}var f=n[i]={exports:{}};e[i][0].call(f.exports,(function(t){return r(e[i][1][t]||t)}),f,f.exports,t,e,n,o)}return n[i].exports}for(var a="function"==typeof require&&require,i=0;i<o.length;i++)r(o[i]);return r}({1:[function(t,e,n){var o=t("./url"),r=t("./manager"),a=t("./socket");function i(t,e){"object"==typeof t&&(e=t,t=void 0),e=e||{};var n,i=o(t,e.path||"/socket.io"),c=i.source,s=i.id,u=i.path,f=r.cache[s]&&u in r.cache[s].nsps,l=e.forceNew||e["force new connection"]||!1===e.multiplex||f;return l?n=new r(c,e):(r.cache[s]||(r.cache[s]==new r(c,e)),n=r.cache[s]),i.anchor&&!e.auth&&(e.auth=i.anchor),n.socket(i.path,e)}i.connect=i,i.Manager=r,i.Socket=a,e.exports=i},{"./manager":2,"./socket":4,"./url":5}],2:[function(t,e,n){e.exports=function(){return{cache:{},nsps:{}}}},{}],4:[function(t,e,n){e.exports=function(){}},{}],5:[function(t,e,n){e.exports=function(){return{source:"",id:"",path:"/socket.io"}}}}),[1])}));
-
-    // Инициализация сокета (теперь переменная 'io' гарантированно существует выше)
-    const socket = io();
     const messagesDiv = document.getElementById('messages');
 
-    // Нажатие Enter в поле ввода
+    // Слушаем нажатие клавиши Enter для отправки
     document.getElementById('text').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') sendMessage();
     });
 
-    // Функция отправки сообщений
+    // Функция отправки сообщения на сервер через стандартный HTTP POST
     function sendMessage() {
         const nameInput = document.getElementById('username');
         const textInput = document.getElementById('text');
@@ -49,28 +44,28 @@
         
         if (text === '') return;
 
-        // Если сокет еще не подключился, отправляем через обычный HTTP POST запрос (Резервный вариант для прокси Timeweb)
         const fullMessage = `${name}: ${text}`;
         
-        if (socket && socket.connected) {
-            socket.emit('chat message', fullMessage);
-        } else {
-            // Если сокеты режутся хостингом, шлем сообщение по HTTP, а сервер его перешлет
-            fetch('/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: fullMessage })
-            }).catch(err => console.error(err));
-        }
+        // Отправляем JSON-данные на сервер
+        fetch('/api/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: fullMessage })
+        })
+        .then(() => {
+            fetchMessages(); // Сразу же обновляем чат у себя, чтобы не ждать таймера
+        })
+        .catch(err => console.error("Ошибка отправки:", err));
         
-        textInput.value = '';
+        textInput.value = ''; // Очищаем поле ввода
     }
 
-    // Постоянное обновление чата каждые 2 секунды (длинные опросы на случай блокировки сокетов)
+    // Функция получения списка сообщений с сервера через HTTP GET
     function fetchMessages() {
-        fetch('/messages-list')
+        fetch('/api/messages')
             .then(res => res.json())
             .then(data => {
+                // Очищаем окно и рендерим актуальные сообщения
                 messagesDiv.innerHTML = '';
                 data.forEach(msg => {
                     const messageElement = document.createElement('div');
@@ -78,13 +73,16 @@
                     messageElement.textContent = msg;
                     messagesDiv.appendChild(messageElement);
                 });
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Скролл вниз
             })
-            .catch(err => console.log("Опрос сервера..."));
+            .catch(err => console.error("Ошибка обновления чата:", err));
     }
 
-    // Включаем фоновый опрос раз в 2 секунды
-    setInterval(fetchMessages, 2000);
+    // Запускаем автоматический опрос сервера каждую 1 секунду
+    setInterval(fetchMessages, 1000);
+
+    // Первый запуск при загрузке страницы
+    fetchMessages();
 </script>
 </body>
 </html>
