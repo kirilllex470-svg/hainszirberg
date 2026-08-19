@@ -334,26 +334,50 @@
 
     function sendMedia(base64Data, mediaType) {
         if (!currentUser || !currentRoomId) return;
+
+        // Конвертируем Base64 обратно в бинарный Blob для быстрой загрузки
+        const byteString = atob(base64Data.split(',')[1]);
+        const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], {type: mimeString});
+
+        // Отправляем как файл через FormData — это не нагружает память Render
+        const formData = new FormData();
+        formData.append('sender', currentUser);
+        formData.append('room', currentRoomId);
+        formData.append('type', mediaType);
+        formData.append('media', blob, `${mediaType}_file`);
+
         fetch('/api/send', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sender: currentUser, room: currentRoomId, text: base64Data, type: mediaType })
-        }).then(() => fetchMessages());
+            body: formData // Без заголовка Content-Type, браузер поставит его сам
+        })
+        .then(() => fetchMessages())
+        .catch(err => console.error("Ошибка отправки медиа на Render:", err));
     }
 
     function sendMessage() {
         const textInput = document.getElementById('text-input');
         const text = textInput.value.trim();
         if (text === '' || !currentUser || !currentRoomId) return;
+
+        const formData = new FormData();
+        formData.append('sender', currentUser);
+        formData.append('room', currentRoomId);
+        formData.append('text', text);
+        formData.append('type', 'text');
+
         fetch('/api/send', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sender: currentUser, room: currentRoomId, text: text, type: 'text' })
+            body: formData
         })
         .then(() => { textInput.value = ''; fetchMessages(); })
         .catch(err => console.error(err));
     }
-
     function fetchMessages() {
         if (!currentUser || !currentRoomId) return;
         fetch(`/api/messages?room=${currentRoomId}`)
