@@ -141,6 +141,7 @@
 
     document.getElementById('text-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
     document.getElementById('new-friend-name').addEventListener('keypress', function(e) { if (e.key === 'Enter') addFriend(); });
+
     function handleAuth() {
         const username = document.getElementById('auth-user').value.trim();
         const password = document.getElementById('auth-pass').value.trim();
@@ -230,7 +231,6 @@
     }
 
     function closeChatMobile() { document.getElementById('app-sidebar').classList.remove('hidden'); }
-
     function renderFriends() {
         const box = document.getElementById('friends-box');
         box.innerHTML = '';
@@ -244,6 +244,7 @@
             box.appendChild(item);
         });
     }
+
     function logout() {
         clearInterval(updateInterval); updateInterval = null;
         localStorage.removeItem('chat_username');
@@ -304,19 +305,26 @@
 
                 let options = { mimeType: 'video/webm; codecs=vp8,opus' };
                 if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-                    options = { mimeType: 'video/mp4; codecs=avc1.42E01E,mp4a.40.2' };
+                    options = { mimeType: 'video/mp4' };
                 }
 
                 videoRecorder = new MediaRecorder(stream, options);
-                videoRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) videoChunks.push(e.data); };
+                videoRecorder.ondataavailable = e => { 
+                    if (e.data && e.data.size > 0) videoChunks.push(e.data); 
+                };
+                
                 videoRecorder.onstop = () => {
                     const blob = new Blob(videoChunks, { type: videoRecorder.mimeType });
                     const reader = new FileReader();
                     reader.readAsDataURL(blob);
                     reader.onloadend = () => sendMedia(reader.result, 'video');
-                    videoStreamRef.getTracks().forEach(track => track.stop());
+                    
+                    if (videoStreamRef) {
+                        videoStreamRef.getTracks().forEach(track => track.stop());
+                    }
                 };
-                videoRecorder.start(10);
+                
+                videoRecorder.start(); 
                 btn.classList.add('recording');
                 btn.textContent = "🛑";
             }).catch(err => { console.error(err); alert("Нет доступа к камере или микрофону!"); });
@@ -366,7 +374,7 @@
                     if (msg.type === 'audio') {
                         contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`;
                     } else if (msg.type === 'video') {
-                        contentHTML = `<video class="video-round" src="${msg.text}" controls playsinline autoplay loop></video>`;
+                        contentHTML = `<video class="video-round" src="${msg.text}" controls playsinline autoplay muted loop></video>`;
                     } else {
                         contentHTML = `<div class="msg-text">${msg.text}</div>`;
                     }
