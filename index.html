@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Node.js Мессенджер</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f2f5; }
+        #chat { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        #messages { height: 300px; border: 1px solid #ddd; overflow-y: scroll; padding: 10px; margin-bottom: 10px; background: #fafafa; }
+        .msg { margin-bottom: 8px; padding: 6px 10px; border-radius: 4px; background: #e1ffc7; width: fit-content; max-width: 80%; }
+        #input-area { display: flex; gap: 10px; }
+        input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+<div id="chat">
+    <h3>Мини-Мессенджер</h3>
+    <div id="messages"></div>
+    <div id="input-area">
+        <input type="text" id="username" placeholder="Ваше имя" style="width: 30%;">
+        <input type="text" id="text" placeholder="Введите сообщение...">
+        <button onclick="sendMessage()">Отправить</button>
+    </div>
+</div>
+
+<script>
+    // Подключаемся к WebSocket серверу (используем текущий хост)
+    const socket = new WebSocket(`ws://${window.location.host}`);
+    const messagesDiv = document.getElementById('messages');
+
+    // Нажатие Enter в поле ввода
+    document.getElementById('text').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // Прием сообщения от сервера
+    socket.onmessage = function(event) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'msg';
+        messageElement.textContent = event.data;
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Скролл вниз
+    };
+
+    // Функция отправки
+    function sendMessage() {
+        const nameInput = document.getElementById('username');
+        const textInput = document.getElementById('text');
+        
+        const name = nameInput.value.trim() || 'Аноним';
+        const text = textInput.value.trim();
+        
+        if (text === '') return;
+
+        // Формируем строку и отправляем на сервер
+        const fullMessage = `${name}: ${text}`;
+        socket.send(fullMessage);
+        
+        textInput.value = ''; // Очищаем поле ввода
+    }
+</script>
+</body>
+</html>
