@@ -7,18 +7,30 @@
     <style>
         * { margin: 0; padding: 0; box-shadow: none; box-sizing: border-box; font-family: Segoe UI, Helvetica Neue, Helvetica, Lucida Grande, Arial, Ubuntu, Cantarell, Fira Sans, sans-serif; }
         body { background: #dadbd3; display: flex; justify-content: center; align-items: center; height: 100vh; height: -webkit-fill-available; overflow: hidden; }
+        
+        /* Экран авторизации */
         #auth-screen { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 360px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); text-align: center; display: block; border-top: 10px solid #00a884; }
         #auth-screen h2 { color: #41525d; margin-bottom: 20px; font-weight: 500; font-size: 22px; }
         .auth-input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #e9edef; border-radius: 6px; outline: none; background: #f0f2f5; font-size: 15px; }
         .auth-btn { width: 100%; padding: 12px; background: #00a884; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .auth-btn:hover { background: #008f72; }
         #auth-error { color: #ea0038; font-size: 14px; margin-bottom: 10px; display: none; }
+        
+        /* Главный контейнер чата */
         #app-screen { display: none; width: 100%; max-width: 1000px; height: 95vh; background: #efeae2; box-shadow: 0 6px 18px rgba(0,0,0,0.1); border-radius: 3px; position: relative; flex-direction: column; overflow: hidden; }
+        
+        /* Элементы интерфейса WhatsApp */
         .chat-header { background: #f0f2f5; height: 60px; min-height: 60px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #e9edef; width: 100%; }
         .avatar { width: 40px; height: 40px; background: #607d8b; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 16px; margin-right: 12px; text-transform: uppercase; flex-shrink: 0; }
         .user-info { flex: 1; min-width: 0; }
         .user-info h4 { color: #111b21; font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .user-info p { color: #667781; font-size: 12px; }
+        
+        /* Стильная кнопка Выйти */
+        .logout-btn { background: #ea4335; color: white; border: none; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s; outline: none; }
+        .logout-btn:hover { background: #c53026; }
+        
+        /* Сетка сообщений и пузыри */
         #messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 8px; background-image: url('https://githubusercontent.com'); background-color: #efeae2; background-repeat: repeat; -webkit-overflow-scrolling: touch; }
         .message-row { display: flex; width: 100%; }
         .message-row.my-msg { justify-content: flex-end; }
@@ -30,9 +42,13 @@
         .other-msg .msg-sender { color: #2b7bc5; }
         .msg-text { line-height: 19px; padding-bottom: 10px; padding-right: 25px; font-size: 14.5px; }
         .msg-time { font-size: 10px; color: #667781; position: absolute; bottom: 4px; right: 8px; }
+        
+        /* Строка ввода */
         .input-container { background: #f0f2f5; height: 62px; min-height: 62px; display: flex; align-items: center; padding: 5px 12px; gap: 10px; border-top: 1px solid #e9edef; width: 100%; }
         #text-input { flex: 1; height: 40px; background: white; border: none; border-radius: 8px; padding: 0 12px; font-size: 15px; outline: none; color: #111b21; }
         #send-btn { background: transparent; border: none; color: #00a884; font-size: 15px; font-weight: bold; cursor: pointer; padding: 5px 8px; flex-shrink: 0; }
+        
+        /* Стили адаптивности под смартфоны */
         @media (max-width: 767px) {
             body { background: #efeae2; }
             #app-screen { height: 100vh; height: 100dvh; max-width: 100%; border-radius: 0; box-shadow: none; }
@@ -40,6 +56,8 @@
             .chat-header .user-info h4 { color: white; }
             .chat-header .user-info p { color: #e1f5fe; }
             .chat-header .avatar { background: #008f72; border: 1px solid #d9fdd3; }
+            .logout-btn { background: #008f72; border: 1px solid #d9fdd3; color: white; }
+            .logout-btn:hover { background: #006b55; }
             .bubble { max-width: 85%; font-size: 15px; }
             .input-container { height: 56px; min-height: 56px; padding: 5px 8px; }
             #text-input { font-size: 16px; }
@@ -47,6 +65,8 @@
     </style>
 </head>
 <body>
+
+    <!-- Экран формы входа -->
     <div id="auth-screen">
         <h2>Вход в WhatsApp</h2>
         <div id="auth-error">Неверный пароль</div>
@@ -54,6 +74,8 @@
         <input type="password" id="auth-pass" class="auth-input" placeholder="Пароль">
         <button onclick="handleAuth()" class="auth-btn">Войти / Создать аккаунт</button>
     </div>
+
+    <!-- Главный экран приложения -->
     <div id="app-screen">
         <div class="chat-header">
             <div class="avatar" id="user-avatar">?</div>
@@ -61,8 +83,12 @@
                 <h4 id="user-display-name">Пользователь</h4>
                 <p>Онлайн-комната</p>
             </div>
+            <!-- Добавленная рабочая кнопка выхода -->
+            <button class="logout-btn" onclick="logout()">Выйти</button>
         </div>
+        
         <div id="messages"></div>
+        
         <div class="input-container">
             <input type="text" id="text-input" placeholder="Введите сообщение...">
             <button id="send-btn" onclick="sendMessage()">ОТПРАВИТЬ</button>
@@ -70,14 +96,26 @@
     </div>
 <script>
     let currentUser = localStorage.getItem('chat_username') || null;
+    let updateInterval = null;
     const messagesDiv = document.getElementById('messages');
+
     if (currentUser) { showChat(); }
-    document.getElementById('text-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
+
+    document.getElementById('text-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+
     function handleAuth() {
         const username = document.getElementById('auth-user').value.trim();
         const password = document.getElementById('auth-pass').value.trim();
         const errorDiv = document.getElementById('auth-error');
-        if (!username || !password) { errorDiv.textContent = "Заполните все поля!"; errorDiv.style.display = "block"; return; }
+
+        if (!username || !password) {
+            errorDiv.textContent = "Заполните все поля!";
+            errorDiv.style.display = "block";
+            return;
+        }
+
         fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -85,41 +123,78 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) { currentUser = username; localStorage.setItem('chat_username', username); showChat(); }
-            else { errorDiv.textContent = data.message; errorDiv.style.display = "block"; }
+            if (data.success) {
+                currentUser = username;
+                localStorage.setItem('chat_username', username);
+                showChat();
+            } else {
+                errorDiv.textContent = data.message;
+                errorDiv.style.display = "block";
+            }
         })
-        .catch(() => { errorDiv.textContent = "Ошибка сервера авторизации"; errorDiv.style.display = "block"; });
+        .catch(() => {
+            errorDiv.textContent = "Ошибка сервера авторизации";
+            errorDiv.style.display = "block";
+        });
     }
+
     function showChat() {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'flex';
         document.getElementById('user-display-name').textContent = currentUser;
         document.getElementById('user-avatar').textContent = currentUser.substring(0,2);
+        
+        document.getElementById('auth-user').value = '';
+        document.getElementById('auth-pass').value = '';
+        document.getElementById('auth-error').style.display = 'none';
+
         fetchMessages();
-        setInterval(fetchMessages, 1500);
+        if (!updateInterval) {
+            updateInterval = setInterval(fetchMessages, 1500);
+        }
     }
+
+    // Логика кнопки выхода из профиля
+    function logout() {
+        clearInterval(updateInterval);
+        updateInterval = null;
+        localStorage.removeItem('chat_username');
+        currentUser = null;
+        document.getElementById('app-screen').style.display = 'none';
+        document.getElementById('auth-screen').style.display = 'block';
+    }
+
     function sendMessage() {
         const textInput = document.getElementById('text-input');
         const text = textInput.value.trim();
         if (text === '' || !currentUser) return;
+
         fetch('/api/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sender: currentUser, text: text })
         })
-        .then(() => { textInput.value = ''; fetchMessages(); })
+        .then(() => {
+            textInput.value = '';
+            fetchMessages();
+        })
         .catch(err => console.error(err));
     }
+
     function fetchMessages() {
+        if (!currentUser) return; 
+
         fetch('/api/messages')
             .then(res => res.json())
             .then(data => {
                 let isScrolledDown = messagesDiv.scrollHeight - messagesDiv.clientHeight <= messagesDiv.scrollTop + 50;
                 messagesDiv.innerHTML = '';
+                
                 data.forEach(msg => {
                     const row = document.createElement('div');
                     const isMy = msg.sender === currentUser;
                     row.className = `message-row ${isMy ? 'my-msg' : 'other-msg'}`;
+                    
                     row.innerHTML = `
                         <div class="bubble">
                             ${!isMy ? `<div class="msg-sender">${msg.sender}</div>` : ''}
@@ -129,7 +204,10 @@
                     `;
                     messagesDiv.appendChild(row);
                 });
-                if (isScrolledDown) { messagesDiv.scrollTop = messagesDiv.scrollHeight; }
+                
+                if (isScrolledDown) {
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
             })
             .catch(err => console.log("Сбой обновления"));
     }
