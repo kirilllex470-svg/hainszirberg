@@ -8,23 +8,17 @@ const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
-if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR);
-}
+if (!fs.existsSync(UPLOADS_DIR)) { fs.mkdirSync(UPLOADS_DIR); }
 
 function readJSON(filePath, defaultVal = {}) {
-    try {
-        if (fs.existsSync(filePath)) {
-            return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        }
-    } catch (e) { console.error("Ошибка парсинга файла: " + filePath, e); }
+    try { if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8')); } 
+    catch (e) { console.error("Ошибка чтения файла:", e); }
     return defaultVal;
 }
 
 function writeJSON(filePath, data) {
-    try {
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-    } catch (e) { console.error("Ошибка записи файла: " + filePath, e); }
+    try { fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8'); } 
+    catch (e) { console.error("Ошибка записи файла:", e); }
 }
 
 let usersDB = readJSON(USERS_FILE, {});
@@ -32,7 +26,7 @@ let roomsDB = readJSON(HISTORY_FILE, {});
 let friendsDB = readJSON(FRIENDS_FILE, {});
 
 const server = http.createServer((req, res) => {
-    // 1. Авторизация и регистрация
+    // 1. Авторизация
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -68,9 +62,7 @@ const server = http.createServer((req, res) => {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
-        if (user && friendsDB[user.toLowerCase()]) {
-            return res.end(JSON.stringify(friendsDB[user.toLowerCase()]));
-        }
+        if (user && friendsDB[user.toLowerCase()]) return res.end(JSON.stringify(friendsDB[user.toLowerCase()]));
         return res.end(JSON.stringify([]));
     }
 
@@ -100,51 +92,79 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 5. Прием сообщений (с декодированием base64 в медиафайлы)
+    // 5. Оптимизированный прием FormData (Текст/Аудио/Видео) под ограничения Render
     if (req.url === '/api/send' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => body += chunk.toString());
+        const contentType = req.headers['content-type'];
+        if (!contentType || !contentType.includes('multipart/form-data')) {
+            res.writeHead(400); return res.end('Ожидался FormData');
+        }
+
+        const boundary = contentType.split('boundary=')[1];
+        let chunks = [];
+
+        req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
-            try {
-                const { sender, room, text, type } = JSON.parse(body);
-                if (sender && room && text) {
-                    let finalUrlOrText = text;
+            const buffer = Buffer.concat(chunks);
+            const bufferStr = buffer.toString('binary');
+            const parts = bufferStr.split('--' + boundary);
 
-                    if ((type === 'audio' || type === 'video') && text.startsWith('data:')) {
-                        const matches = text.match(/^data:([A-Za-z-+\/0-9;=]+);base64,(.+)$/);
-                        if (matches && matches.length === 3) {
-                            const mimeType = matches[1];
-                            const base64Data = matches[2];
-                            const buffer = Buffer.from(base64Data, 'base64');
-                            
-                            let fileExt = 'webm';
-                            if (mimeType.includes('mp4')) fileExt = 'mp4';
-                            else if (mimeType.includes('ogg')) fileExt = 'ogg';
+            let fields = {};
+            let fileBuffer = null;
+            let fileExt = 'webm';
 
-                            const fileName = `${type}_${crypto.randomBytes(8).toString('hex')}.${fileExt}`;
-                            const filePath = path.join(UPLOADS_DIR, fileName);
-                            
-                            fs.writeFileSync(filePath, buffer);
-                            finalUrlOrText = `/uploads/${fileName}`;
-                        }
+            for (let part of parts) {
+                if (part.includes('Content-Disposition: form-data;')) {
+                    const matchName = part.match(/name="([^"]+)"/);
+                    if (!matchName) continue;
+                    const name = matchName[1];
+
+                    if (part.includes('filename="')) {
+                        // Это медиафайл
+                        const fileMatch = part.match(/Content-Type:\s*([^\s\r\n]+)/);
+                        const mime = fileMatch ? fileMatch[1] : '';
+                        if (mime.includes('mp4')) fileExt = 'mp4';
+                        else if (mime.includes('ogg')) fileExt = 'ogg';
+
+                        // Вырезаем чистый бинарник файла из потока FormData
+                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
+                        const fileContentBinary = part.substring(headerEnd, part.length - 2);
+                        fileBuffer = Buffer.from(fileContentBinary, 'binary');
+                    } else {
+                        // Это обычное текстовое поле
+                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
+                        const value = part.substring(headerEnd, part.length - 2).trim();
+                        fields[name] = Buffer.from(value, 'binary').toString('utf-8');
                     }
-
-                    const now = new Date();
-                    const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                    if (!roomsDB[room]) roomsDB[room] = [];
-                    
-                    roomsDB[room].push({ sender, text: finalUrlOrText, type: type || 'text', time: timeStr });
-                    if (roomsDB[room].length > 150) roomsDB[room].shift();
-                    
-                    writeJSON(HISTORY_FILE, roomsDB);
                 }
+            }
+
+            const { sender, room, type, text } = fields;
+            if (sender && room) {
+                let finalContent = text || '';
+
+                if ((type === 'audio' || type === 'video') && fileBuffer && fileBuffer.length > 0) {
+                    const fileName = `${type}_${crypto.randomBytes(8).toString('hex')}.${fileExt}`;
+                    const filePath = path.join(UPLOADS_DIR, fileName);
+                    fs.writeFileSync(filePath, fileBuffer);
+                    finalContent = `/uploads/${fileName}`;
+                }
+
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                if (!roomsDB[room]) roomsDB[room] = [];
+                
+                roomsDB[room].push({ sender, text: finalContent, type: type || 'text', time: timeStr });
+                if (roomsDB[room].length > 150) roomsDB[room].shift();
+                
+                writeJSON(HISTORY_FILE, roomsDB);
                 res.writeHead(200); return res.end('OK');
-            } catch (e) { console.error(e); res.writeHead(400); res.end('Bad Request'); }
+            }
+            res.writeHead(400); res.end('Incomplete data');
         });
         return;
     }
 
-    // 6. Раздача сохраненных медиафайлов из папки /uploads
+    // 6. Стриминговая раздача сохраненных файлов медиа
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
@@ -177,4 +197,4 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
+server.listen(PORT, () => { console.log(`Сервер запущен под Render на порту ${PORT}`); });
