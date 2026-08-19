@@ -17,7 +17,7 @@
 <body>
 
 <div id="chat">
-    <h3>Мини-Мессенджер (HTTP API)</h3>
+    <h3>Мини-Мессенджер (Timeweb Web API)</h3>
     <div id="messages"></div>
     <div id="input-area">
         <input type="text" id="username" placeholder="Ваше имя" style="width: 30%;">
@@ -29,12 +29,11 @@
 <script>
     const messagesDiv = document.getElementById('messages');
 
-    // Слушаем нажатие клавиши Enter для отправки
     document.getElementById('text').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') sendMessage();
     });
 
-    // Функция отправки сообщения на сервер через стандартный HTTP POST
+    // Отправка через чистый GET с параметрами, чтобы обойти ошибку 405 (Method Not Allowed)
     function sendMessage() {
         const nameInput = document.getElementById('username');
         const textInput = document.getElementById('text');
@@ -44,28 +43,30 @@
         
         if (text === '') return;
 
-        const fullMessage = `${name}: ${text}`;
+        const fullMessage = encodeURIComponent(`${name}: ${text}`);
         
-        // Отправляем JSON-данные на сервер
-        fetch('/api/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: fullMessage })
-        })
+        // Отправляем сообщение как GET-параметр прямо на главный URL
+        fetch(`/?send=${fullMessage}`)
         .then(() => {
-            fetchMessages(); // Сразу же обновляем чат у себя, чтобы не ждать таймера
+            fetchMessages();
         })
         .catch(err => console.error("Ошибка отправки:", err));
         
-        textInput.value = ''; // Очищаем поле ввода
+        textInput.value = '';
     }
 
-    // Функция получения списка сообщений с сервера через HTTP GET
+    // Получение сообщений через GET-параметр ?get=1
     function fetchMessages() {
-        fetch('/api/messages')
-            .then(res => res.json())
+        fetch('/?get=1')
+            .then(res => {
+                // Если сервер вернул HTML вместо JSON, значит бэкенд Node.js еще спит
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("text/html")) {
+                    throw new Error("Сервер все еще отдает статический HTML. Проверьте запуск бэкенда.");
+                }
+                return res.json();
+            })
             .then(data => {
-                // Очищаем окно и рендерим актуальные сообщения
                 messagesDiv.innerHTML = '';
                 data.forEach(msg => {
                     const messageElement = document.createElement('div');
@@ -73,15 +74,13 @@
                     messageElement.textContent = msg;
                     messagesDiv.appendChild(messageElement);
                 });
-                messagesDiv.scrollTop = messagesDiv.scrollHeight; // Скролл вниз
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
             })
-            .catch(err => console.error("Ошибка обновления чата:", err));
+            .catch(err => console.warn("Ожидание бэкенда..."));
     }
 
-    // Запускаем автоматический опрос сервера каждую 1 секунду
-    setInterval(fetchMessages, 1000);
-
-    // Первый запуск при загрузке страницы
+    // Опрос сервера раз в 1.5 секунды
+    setInterval(fetchMessages, 1500);
     fetchMessages();
 </script>
 </body>
