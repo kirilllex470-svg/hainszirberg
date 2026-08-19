@@ -1,0 +1,14 @@
+meta:
+  environment: nodejs
+  toolchain:
+    name: node
+    version: 20
+build:
+  requirements:
+    - package.json
+  artifacts:
+    - server.js
+    - index.html
+    - package.json
+run:
+  command: node server.js
