@@ -76,13 +76,12 @@
 <body>
 
     <div id="auth-screen">
-        <h2>#Муравейник ЛАБ#</h2>
+        <h2>Вход в WhatsApp Neo</h2>
         <div id="auth-error"></div>
         <input type="text" id="auth-user" class="auth-input" placeholder="Имя пользователя">
         <input type="password" id="auth-pass" class="auth-input" placeholder="Пароль">
         <button onclick="handleAuth()" class="auth-btn">Войти / Создать аккаунт</button>
     </div>
-
     <div id="app-screen">
         <video id="video-preview" autoplay muted playsinline style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid #f43f5e; box-shadow: 0 0 20px rgba(244, 63, 94, 0.6); z-index: 100; background: black;"></video>
 
@@ -95,7 +94,7 @@
                 <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
             <div class="search-container">
-                <input type="text" id="new-friend-name" class="search-input" placeholder="Введите идентификатор...">
+                <input type="text" id="new-friend-name" class="search-input" placeholder="Имя друга...">
                 <button class="add-friend-btn" onclick="addFriend()">+</button>
             </div>
             <div class="friends-list" id="friends-box"></div>
@@ -142,7 +141,6 @@
 
     document.getElementById('text-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
     document.getElementById('new-friend-name').addEventListener('keypress', function(e) { if (e.key === 'Enter') addFriend(); });
-
     function handleAuth() {
         const username = document.getElementById('auth-user').value.trim();
         const password = document.getElementById('auth-pass').value.trim();
@@ -232,6 +230,7 @@
     }
 
     function closeChatMobile() { document.getElementById('app-sidebar').classList.remove('hidden'); }
+
     function renderFriends() {
         const box = document.getElementById('friends-box');
         box.innerHTML = '';
@@ -284,7 +283,6 @@
             }).catch(() => alert("Нет доступа к микрофону!"));
         }
     }
-
     function toggleVideoRecord() {
         const btn = document.getElementById('video-btn');
         const preview = document.getElementById('video-preview');
@@ -334,30 +332,33 @@
 
     function sendMedia(base64Data, mediaType) {
         if (!currentUser || !currentRoomId) return;
+        
+        try {
+            const parts = base64Data.split(';base64,');
+            const contentType = parts[0].split(':')[1];
+            const raw = window.atob(parts[1]);
+            const uInt8Array = new Uint8Array(raw.length);
 
-        // Конвертируем Base64 обратно в бинарный Blob для быстрой загрузки
-        const byteString = atob(base64Data.split(',')[1]);
-        const mimeString = base64Data.split(',')[0].split(':')[1].split(';')[0];
-        const ab = new ArrayBuffer(byteString.length);
-        const ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
+            for (let i = 0; i < raw.length; ++i) {
+                uInt8Array[i] = raw.charCodeAt(i);
+            }
+
+            const blob = new Blob([uInt8Array], { type: contentType });
+            const formData = new FormData();
+            formData.append('sender', currentUser);
+            formData.append('room', currentRoomId);
+            formData.append('type', mediaType);
+            formData.append('media', blob);
+
+            fetch('/api/send', {
+                method: 'POST',
+                body: formData
+            })
+            .then(() => fetchMessages())
+            .catch(err => console.error("Ошибка сети на Render:", err));
+        } catch (e) {
+            console.error("Ошибка сборки медиа на фронтенде:", e);
         }
-        const blob = new Blob([ab], {type: mimeString});
-
-        // Отправляем как файл через FormData — это не нагружает память Render
-        const formData = new FormData();
-        formData.append('sender', currentUser);
-        formData.append('room', currentRoomId);
-        formData.append('type', mediaType);
-        formData.append('media', blob, `${mediaType}_file`);
-
-        fetch('/api/send', {
-            method: 'POST',
-            body: formData // Без заголовка Content-Type, браузер поставит его сам
-        })
-        .then(() => fetchMessages())
-        .catch(err => console.error("Ошибка отправки медиа на Render:", err));
     }
 
     function sendMessage() {
@@ -378,6 +379,7 @@
         .then(() => { textInput.value = ''; fetchMessages(); })
         .catch(err => console.error(err));
     }
+
     function fetchMessages() {
         if (!currentUser || !currentRoomId) return;
         fetch(`/api/messages?room=${currentRoomId}`)
