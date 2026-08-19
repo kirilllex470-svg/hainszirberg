@@ -23,10 +23,10 @@ function writeJSON(filePath, data) {
 
 let usersDB = readJSON(USERS_FILE, {});
 let roomsDB = readJSON(HISTORY_FILE, {});
-let friendsDB = readJSON(FRIENDS_FILE, {}); // Структура: { username: ["друг1", "друг2"] }
+let friendsDB = readJSON(FRIENDS_FILE, {});
 
 const server = http.createServer((req, res) => {
-    // 1. Авторизация
+    // 1. Авторизация и регистрация
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -57,7 +57,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 2. Получение списка друзей пользователя
+    // 2. Получение списка друзей
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -68,7 +68,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 3. Сохранение обновленного списка друзей (добавление/удаление)
+    // 3. Сохранение списка друзей
     if (req.url === '/api/friends/save' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -85,7 +85,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4. Отдача истории конкретной комнаты
+    // 4. Отдача истории переписки комнаты
     if (req.url.startsWith('/api/messages') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const room = myUrl.searchParams.get('room');
@@ -94,7 +94,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 5. Получение нового сообщения в комнату
+    // 5. Прием нового сообщения
     if (req.url === '/api/send' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -115,7 +115,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Отдача статики
+    // 6. Главная страница
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
@@ -128,4 +128,4 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log(`Сервер запущен на порту ${PORT}`); });
+server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
