@@ -94,18 +94,20 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 5. Прием нового сообщения
+    // 5. Прием нового сообщения (Поддерживает тяжелые голосовые и видео)
     if (req.url === '/api/send' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
-                const { sender, room, text } = JSON.parse(body);
+                const { sender, room, text, type } = JSON.parse(body);
                 if (sender && room && text) {
                     const now = new Date();
                     const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                     if (!roomsDB[room]) roomsDB[room] = [];
-                    roomsDB[room].push({ sender, text, time: timeStr });
+                    
+                    // Сохраняем не только текст, но и тип сообщения (text, audio, video)
+                    roomsDB[room].push({ sender, text, type: type || 'text', time: timeStr });
                     if (roomsDB[room].length > 150) roomsDB[room].shift();
                     writeJSON(HISTORY_FILE, roomsDB);
                 }
