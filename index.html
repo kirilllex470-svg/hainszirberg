@@ -13,8 +13,8 @@
         button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
         button:hover { background: #0056b3; }
     </style>
-    <!-- Подключаем клиентскую библиотеку Socket.IO из официального CDN -->
-    <script src="https://socket.io"></script>
+    <!-- ЗАМЕНА: Загружаем скрипт прямо с нашего сервера на Timeweb, а не из внешнего CDN -->
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
@@ -29,7 +29,7 @@
 </div>
 
 <script>
-    // Подключаемся к текущему хосту. Socket.IO сама разберется с ws/wss/polling
+    // Подключаемся к текущему хосту
     const socket = io();
     const messagesDiv = document.getElementById('messages');
 
