@@ -16,7 +16,7 @@
         #auth-screen h2 { color: #f8fafc; margin-bottom: 24px; font-weight: 600; font-size: 26px; }
         .auth-input { width: 100%; padding: 14px 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; outline: none; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 15px; }
         .auth-btn { width: 100%; padding: 14px; background: #00a884; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        #auth-error { color: #f43f5e; font-size: 14px; margin-bottom: 12px; display: none; font-weight: 500; }
+        #auth-error { color: #f43f5e; font-size: 14px; margin-bottom: 12px; display: none; }
         
         #app-screen { display: none; width: 95vw; max-width: 1200px; height: 90vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); border-radius: 24px; position: relative; flex-direction: row; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
         .sidebar { width: 32%; min-width: 300px; background: rgba(15, 23, 42, 0.4); border-right: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; z-index: 5; transition: transform 0.25s ease; }
@@ -33,7 +33,7 @@
         .friend-name { font-size: 15px; color: #e2e8f0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .delete-friend-btn { background: transparent; border: none; color: #64748b; font-size: 18px; cursor: pointer; }
         
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.2); overflow: hidden; }
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.2); overflow: hidden; position: relative; }
         .chat-header { background: rgba(30, 41, 59, 0.4); height: 68px; min-height: 68px; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         .avatar { width: 42px; height: 42px; background: linear-gradient(135deg, #00a884, #0284c7); border-radius: 14px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 600; text-transform: uppercase; flex-shrink: 0; }
         .partner-title { color: #f8fafc; font-size: 16px; font-weight: 600; }
@@ -87,6 +87,9 @@
     </div>
 
     <div id="app-screen">
+        <!-- Видео превью для контроля кружочка -->
+        <video id="video-preview" autoplay muted playsinline style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 160px; height: 160px; border-radius: 50%; object-fit: cover; border: 4px solid #f43f5e; box-shadow: 0 0 20px rgba(244, 63, 94, 0.6); z-index: 100; background: black;"></video>
+
         <div class="sidebar" id="app-sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-user">
@@ -257,6 +260,7 @@
         document.getElementById('voice-btn').setAttribute('disabled', 'true');
         document.getElementById('video-btn').setAttribute('disabled', 'true');
     }
+<script>
     function toggleVoiceRecord() {
         const btn = document.getElementById('voice-btn');
         if (audioRecorder && audioRecorder.state === "recording") {
@@ -284,31 +288,47 @@
 
     function toggleVideoRecord() {
         const btn = document.getElementById('video-btn');
+        const preview = document.getElementById('video-preview');
         if (videoRecorder && videoRecorder.state === "recording") {
             videoRecorder.stop();
             btn.classList.remove('recording');
             btn.textContent = "🎥";
+            preview.style.display = 'none';
+            if (preview.srcObject) {
+                preview.srcObject.getTracks().forEach(track => track.stop());
+                preview.srcObject = null;
+            }
         } else {
-            navigator.mediaDevices.getUserMedia({ audio: true, video: { width: 300, height: 300, facingMode: "user" } }).then(stream => {
+            navigator.mediaDevices.getUserMedia({ 
+                audio: { echoCancellation: true, noiseSuppression: true }, 
+                video: { width: 320, height: 320, facingMode: "user" } 
+            }).then(stream => {
                 videoChunks = [];
                 videoStreamRef = stream;
-                videoRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp8,opus' });
-                videoRecorder.ondataavailable = e => videoChunks.push(e.data);
+                preview.srcObject = stream;
+                preview.style.display = 'block';
+
+                let options = { mimeType: 'video/webm; codecs=vp8,opus' };
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options = { mimeType: 'video/mp4; codecs=avc1.42E01E,mp4a.40.2' };
+                }
+
+                videoRecorder = new MediaRecorder(stream, options);
+                videoRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) videoChunks.push(e.data); };
                 videoRecorder.onstop = () => {
-                    const blob = new Blob(videoChunks, { type: 'video/webm' });
+                    const blob = new Blob(videoChunks, { type: videoRecorder.mimeType });
                     const reader = new FileReader();
                     reader.readAsDataURL(blob);
                     reader.onloadend = () => sendMedia(reader.result, 'video');
                     videoStreamRef.getTracks().forEach(track => track.stop());
                 };
-                videoRecorder.start();
+                videoRecorder.start(10);
                 btn.classList.add('recording');
                 btn.textContent = "🛑";
-            }).catch(() => alert("Нет доступа к камере или микрофону!"));
+            }).catch(err => { console.error(err); alert("Нет доступа к камере или микрофону!"); });
         }
     }
 
-    // Отправка закодированного Base64 медиафайла на бэкенд
     function sendMedia(base64Data, mediaType) {
         if (!currentUser || !currentRoomId) return;
         fetch('/api/send', {
@@ -352,7 +372,7 @@
                     if (msg.type === 'audio') {
                         contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`;
                     } else if (msg.type === 'video') {
-                        contentHTML = `<video class="video-round" src="${msg.text}" controls autoplay loop muted></video>`;
+                        contentHTML = `<video class="video-round" src="${msg.text}" controls playsinline autoplay loop></video>`;
                     } else {
                         contentHTML = `<div class="msg-text">${msg.text}</div>`;
                     }
