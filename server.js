@@ -8,7 +8,6 @@ const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
-// Автоматически создаем папку для медиафайлов, если её нет
 if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR);
 }
@@ -101,7 +100,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 5. ИСПРАВЛЕННЫЙ прием сообщений (извлечение Base64 в файлы на диск)
+    // 5. Прием сообщений (с декодированием base64 в медиафайлы)
     if (req.url === '/api/send' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -111,22 +110,21 @@ const server = http.createServer((req, res) => {
                 if (sender && room && text) {
                     let finalUrlOrText = text;
 
-                    // Если это медиафайл (аудио или видео) отправленный в Base64
                     if ((type === 'audio' || type === 'video') && text.startsWith('data:')) {
-                        // Извлекаем чистые бинарные данные из Base64 строки
-                        const matches = text.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+                        const matches = text.match(/^data:([A-Za-z-+\/0-9;=]+);base64,(.+)$/);
                         if (matches && matches.length === 3) {
-                            const buffer = Buffer.from(matches[2], 'base64');
+                            const mimeType = matches[1];
+                            const base64Data = matches[2];
+                            const buffer = Buffer.from(base64Data, 'base64');
                             
-                            // Генерируем уникальное имя файла
-                            const fileExt = type === 'audio' ? 'webm' : 'webm'; 
+                            let fileExt = 'webm';
+                            if (mimeType.includes('mp4')) fileExt = 'mp4';
+                            else if (mimeType.includes('ogg')) fileExt = 'ogg';
+
                             const fileName = `${type}_${crypto.randomBytes(8).toString('hex')}.${fileExt}`;
                             const filePath = path.join(UPLOADS_DIR, fileName);
                             
-                            // Асинхронно пишем файл на диск, чтобы сервер не зависал
                             fs.writeFileSync(filePath, buffer);
-                            
-                            // Вместо Base64 сохраняем в историю чата короткую ссылку на файл
                             finalUrlOrText = `/uploads/${fileName}`;
                         }
                     }
@@ -153,9 +151,14 @@ const server = http.createServer((req, res) => {
             if (err) { res.writeHead(404); return res.end('File Not Found'); }
             
             let contentType = 'application/octet-stream';
-            if (req.url.endsWith('.webm')) contentType = req.url.includes('audio') ? 'audio/webm' : 'video/webm';
+            if (req.url.endsWith('.mp4')) contentType = 'video/mp4';
+            else if (req.url.endsWith('.webm')) contentType = req.url.includes('audio') ? 'audio/webm' : 'video/webm';
             
-            res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'max-age=86400' });
+            res.writeHead(200, { 
+                'Content-Type': contentType, 
+                'Cache-Control': 'max-age=86400',
+                'Accept-Ranges': 'bytes'
+            });
             res.end(data);
         });
         return;
