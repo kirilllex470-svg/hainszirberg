@@ -47,7 +47,6 @@
         .other-msg .bubble { background: rgba(30, 41, 59, 0.8); border-bottom-left-radius: 4px; }
         .msg-text { padding-bottom: 6px; padding-right: 35px; }
         .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); position: absolute; bottom: 6px; right: 12px; }
-        
         .video-round { width: 160px; height: 160px; border-radius: 50%; object-fit: cover; border: 3px solid #00a884; box-shadow: 0 4px 12px rgba(0,0,0,0.3); background: black; }
         .audio-player { outline: none; height: 36px; max-width: 210px; margin-top: 4px; background: transparent; }
         .input-container { background: rgba(30, 41, 59, 0.4); height: 72px; display: flex; align-items: center; padding: 0 15px; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
@@ -83,7 +82,6 @@
         <input type="password" id="auth-pass" class="auth-input" placeholder="Пароль">
         <button onclick="handleAuth()" class="auth-btn">Войти / Создать аккаунт</button>
     </div>
-
     <div id="app-screen">
         <video id="video-preview" autoplay muted playsinline style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 160px; height: 160px; border-radius: 50%; object-fit: cover; border: 4px solid #f43f5e; box-shadow: 0 0 20px rgba(244, 63, 94, 0.6); z-index: 100; background: black;"></video>
 
@@ -122,6 +120,7 @@
             </div>
         </div>
     </div>
+
 <script>
     let currentUser = localStorage.getItem('chat_username') || null;
     let currentPartner = null;
@@ -142,7 +141,6 @@
 
     document.getElementById('text-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
     document.getElementById('new-friend-name').addEventListener('keypress', function(e) { if (e.key === 'Enter') addFriend(); });
-
     function handleAuth() {
         const username = document.getElementById('auth-user').value.trim();
         const password = document.getElementById('auth-pass').value.trim();
@@ -195,6 +193,7 @@
         input.value = '';
         saveFriendsOnServer();
     }
+
     function deleteFriend(name, event) {
         event.stopPropagation();
         if (!confirm(`Удалить ${name} из контактов?`)) return;
@@ -245,7 +244,6 @@
             box.appendChild(item);
         });
     }
-
     function logout() {
         clearInterval(updateInterval); updateInterval = null;
         localStorage.removeItem('chat_username');
@@ -281,7 +279,7 @@
             }).catch(() => alert("Нет доступа к микрофону!"));
         }
     }
-<script>
+
     function toggleVideoRecord() {
         const btn = document.getElementById('video-btn');
         const preview = document.getElementById('video-preview');
