@@ -11,7 +11,7 @@ function readJSON(filePath) {
             return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
         }
     } catch (e) { console.error("Ошибка парсинга файла: " + filePath, e); }
-    return filePath === USERS_FILE ? {} : [];
+    return filePath === USERS_FILE ? {} : {}; // Теперь история — это объект { имя_комнаты: [сообщения] }
 }
 
 function writeJSON(filePath, data) {
@@ -21,9 +21,10 @@ function writeJSON(filePath, data) {
 }
 
 let usersDB = readJSON(USERS_FILE);
-let messagesDB = readJSON(HISTORY_FILE);
+let roomsDB = readJSON(HISTORY_FILE); // Хранит { roomName: [messages] }
 
 const server = http.createServer((req, res) => {
+    // 1. Авторизация
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -54,23 +55,35 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    if (req.url === '/api/messages' && req.method === 'GET') {
+    // 2. Отдача истории конкретной комнаты
+    if (req.url.startsWith('/api/messages') && req.method === 'GET') {
+        const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        const room = myUrl.searchParams.get('room');
+        
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
-        return res.end(JSON.stringify(messagesDB));
+        if (room && roomsDB[room]) {
+            return res.end(JSON.stringify(roomsDB[room]));
+        }
+        return res.end(JSON.stringify([]));
     }
 
+    // 3. Получение нового сообщения в комнату
     if (req.url === '/api/send' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
-                const { sender, text } = JSON.parse(body);
-                if (sender && text) {
+                const { sender, room, text } = JSON.parse(body);
+                if (sender && room && text) {
                     const now = new Date();
                     const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-                    messagesDB.push({ sender, text, time: timeStr });
-                    if (messagesDB.length > 150) messagesDB.shift();
-                    writeJSON(HISTORY_FILE, messagesDB);
+                    
+                    if (!roomsDB[room]) roomsDB[room] = [];
+                    
+                    roomsDB[room].push({ sender, text, time: timeStr });
+                    if (roomsDB[room].length > 150) roomsDB[room].shift();
+                    
+                    writeJSON(HISTORY_FILE, roomsDB);
                 }
                 res.writeHead(200); return res.end('OK');
             } catch (e) { res.writeHead(400); res.end('Bad Request'); }
@@ -78,6 +91,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // 4. Отдача статики
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
@@ -90,4 +104,4 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
+server.listen(PORT, () => { console.log(`Сервер чатов запущен на порту ${PORT}`); });
