@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Node.js Мессенджер</title>
+    <title>Node.js Мессенджер в Облаке</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; background: #f0f2f5; }
         #chat { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -17,7 +17,7 @@
 <body>
 
 <div id="chat">
-    <h3>Мини-Мессенджер</h3>
+    <h3>Мини-Мессенджер (Timeweb)</h3>
     <div id="messages"></div>
     <div id="input-area">
         <input type="text" id="username" placeholder="Ваше имя" style="width: 30%;">
@@ -27,26 +27,38 @@
 </div>
 
 <script>
-    // Подключаемся к WebSocket серверу (используем текущий хост)
-    const socket = new WebSocket(`wss://${window.location.host}`);
-
+    // 1. Автоматически определяем протокол: wss:// для хостинга (https) или ws:// для локалки (http)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    
+    // 2. Подключаемся к выделенному эндпоинту /ws, чтобы обойти ограничения Nginx-прокси в Timeweb
+    const socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
     const messagesDiv = document.getElementById('messages');
 
-    // Нажатие Enter в поле ввода
+    // Нажатие Enter в поле ввода сообщений
     document.getElementById('text').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') sendMessage();
     });
 
-    // Прием сообщения от сервера
+    // Обработка успешного подключения (для отладки)
+    socket.onopen = function() {
+        console.log("Успешное WebSocket-подключение установлено на /ws");
+    };
+
+    // Прием сообщения от сервера и вывод на экран
     socket.onmessage = function(event) {
         const messageElement = document.createElement('div');
         messageElement.className = 'msg';
         messageElement.textContent = event.data;
         messagesDiv.appendChild(messageElement);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Скролл вниз
+        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Скролл вниз до упора
     };
 
-    // Функция отправки
+    // Логирование ошибок в консоль браузера (F12)
+    socket.onerror = function(error) {
+        console.error("Ошибка WebSocket:", error);
+    };
+
+    // Функция отправки строки сообщения на сервер
     function sendMessage() {
         const nameInput = document.getElementById('username');
         const textInput = document.getElementById('text');
@@ -56,11 +68,17 @@
         
         if (text === '') return;
 
-        // Формируем строку и отправляем на сервер
+        // Если сокет закрыт, сообщаем в консоль, чтобы не падать с ошибкой
+        if (socket.readyState !== WebSocket.OPEN) {
+            console.error("Невозможно отправить сообщение: сокет закрыт. Текущий статус:", socket.readyState);
+            return;
+        }
+
+        // Формируем и отправляем строку
         const fullMessage = `${name}: ${text}`;
         socket.send(fullMessage);
         
-        textInput.value = ''; // Очищаем поле ввода
+        textInput.value = ''; // Очищаем поле ввода текста
     }
 </script>
 </body>
