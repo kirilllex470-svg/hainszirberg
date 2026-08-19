@@ -2,61 +2,45 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-// Хранилище сообщений в оперативной памяти сервера
 let messagesDatabase = [];
 
 const server = http.createServer((req, res) => {
+    // Разбираем URL и параметры (например, /?get=1)
+    const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     
-    // 1. Маршрут GET /api/messages — отдает историю сообщений в формате JSON
-    if (req.url === '/api/messages' && req.method === 'GET') {
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    // 1. Если клиент просит список сообщений (?get=1)
+    if (myUrl.searchParams.has('get')) {
+        res.writeHead(200, { 
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-cache'
+        });
         return res.end(JSON.stringify(messagesDatabase));
     }
 
-    // 2. Маршрут POST /api/send — принимает новое сообщение
-    if (req.url === '/api/send' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', () => {
-            try {
-                const data = JSON.parse(body);
-                if (data.message) {
-                    messagesDatabase.push(data.message);
-                    // Ограничиваем массив последними 50 сообщениями, чтобы не переполнять память
-                    if (messagesDatabase.length > 50) {
-                        messagesDatabase.shift();
-                    }
-                }
-                res.writeHead(200, { 'Content-Type': 'text/plain' });
-                res.end('OK');
-            } catch (e) {
-                res.writeHead(400);
-                res.end('Invalid JSON');
-            }
-        });
-        return;
+    // 2. Если клиент прислал новое сообщение (?send=текст)
+    if (myUrl.searchParams.has('send')) {
+        const msg = myUrl.searchParams.get('send');
+        if (msg) {
+            messagesDatabase.push(msg);
+            if (messagesDatabase.length > 50) messagesDatabase.shift();
+        }
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        return res.end('OK');
     }
 
-    // 3. Главный маршрут — отдает файл интерфейса index.html
-    if (req.url === '/' || req.url === '/index.html') {
-        fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
-            if (err) {
-                res.writeHead(500);
-                return res.end('Error loading index.html');
-            }
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end(data);
-        });
-        return;
-    }
-
-    // 4. Для всех остальных запросов отдаем 404
-    res.writeHead(404);
-    res.end('Not Found');
+    // 3. По умолчанию для любых других запросов отдаем файл интерфейса index.html
+    fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
+        if (err) {
+            res.writeHead(500);
+            return res.end('Error loading index.html');
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(data);
+    });
 });
 
-// Запуск сервера на порту хостинга
+// Запуск на порту от Timeweb Cloud
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Сервер мессенджера успешно запущен на порту ${PORT}`);
+    console.log(`Сервер запущен на порту ${PORT}`);
 });
