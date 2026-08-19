@@ -333,8 +333,7 @@
             }).catch(err => { console.error(err); alert("Нет доступа к камере или микрофону!"); });
         }
     }
-
-    function sendMedia(base64Data, mediaType) {
+        function sendMedia(base64Data, mediaType) {
         if (!currentUser || !currentRoomId) return;
         
         try {
