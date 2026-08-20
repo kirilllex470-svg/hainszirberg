@@ -435,11 +435,18 @@
                 audioRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
                 audioRecorder.onstop = () => {
                     const blob = new Blob(audioChunks, { type: audioRecorder.mimeType });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(blob);
-                    reader.onloadend = () => sendMedia(reader.result, 'audio');
+                    const formData = new FormData();
+                    formData.append('sender', currentUser);
+                    formData.append('room', currentRoomId);
+                    formData.append('type', 'audio');
+                    formData.append('media', blob, 'voice.webm'); // ИСПРАВЛЕНО: Явно передаем имя файла
+
+                    fetch('/api/send', { method: 'POST', body: formData })
+                    .then(() => fetchMessages())
+                    .catch(err => console.error(err));
                     stream.getTracks().forEach(track => track.stop());
                 };
+
                 audioRecorder.start();
                 btn.classList.add('recording');
                 btn.textContent = "🛑";
@@ -476,11 +483,19 @@
                 videoRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) videoChunks.push(e.data); };
                 videoRecorder.onstop = () => {
                     const blob = new Blob(videoChunks, { type: videoRecorder.mimeType });
-                    const reader = new FileReader();
-                    reader.readAsDataURL(blob);
-                    reader.onloadend = () => sendMedia(reader.result, 'video');
+                    const fileExt = videoRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
+                    const formData = new FormData();
+                    formData.append('sender', currentUser);
+                    formData.append('room', currentRoomId);
+                    formData.append('type', 'video');
+                    formData.append('media', blob, `video.${fileExt}`); // ИСПРАВЛЕНО: Явно передаем имя файла
+
+                    fetch('/api/send', { method: 'POST', body: formData })
+                    .then(() => fetchMessages())
+                    .catch(err => console.error(err));
                     if (videoStreamRef) { videoStreamRef.getTracks().forEach(track => track.stop()); }
                 };
+
                 videoRecorder.start();
                 btn.classList.add('recording');
                 btn.textContent = "🛑";
@@ -488,14 +503,15 @@
         }
     }
 
-    function uploadAnyFile(inputElement) {
+      function uploadAnyFile(inputElement) {
         if (!inputElement.files || inputElement.files.length === 0) return;
-        const file = inputElement.files[0]; 
+        const file = inputElement.files[0]; // ИСПРАВЛЕНО: Берем первый файл из списка
         const formData = new FormData();
         formData.append('sender', currentUser);
         formData.append('room', currentRoomId);
         formData.append('type', 'file');
-        formData.append('media', file);
+        formData.append('media', file, file.name); // ИСПРАВЛЕНО: Передаем имя файла
+
         fetch('/api/send', { method: 'POST', body: formData })
         .then(() => { inputElement.value = ''; fetchMessages(); })
         .catch(err => console.error("Ошибка загрузки файла:", err));
