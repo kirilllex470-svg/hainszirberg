@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Goosebumps Premium</title>
+    <title>WhatsApp Premium</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, sans-serif; }
         html, body { height: 100%; width: 100%; overflow: hidden; background: #0f172a; }
@@ -84,16 +84,18 @@
         .modal-item:hover { background: rgba(0,168,132,0.15); border-color: rgba(0,168,132,0.2); }
         .modal-forward-icon { color: #00ca9e; font-size: 16px; }
 
-        /* ИСПРАВЛЕНО: Двухуровневый контейнер для ввода и панели инструментов */
-        .input-container { background: #111827; height: auto; min-height: 104px; display: flex; flex-direction: column; padding: 10px 12px; gap: 8px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+        /* ИСПРАВЛЕНО И ВОЗВРАЩЕНО: Оригинальный дизайн с прямоугольной зеленой кнопкой отправки */
+        .input-container { background: #111827; height: auto; min-height: 116px; display: flex; flex-direction: column; padding: 12px 15px; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+        .tools-row { width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding-left: 2px; }
+        .input-row { width: 100%; display: flex; align-items: center; gap: 10px; }
         
-        /* НОВОЕ: Верхний ряд кнопок */
-        .tools-row { width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding-left: 4px; }
+        /* ВОЗВРАЩЕНО: Оригинальное прямоугольное поле ввода */
+        #text-input { flex: 1; height: 46px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; padding: 0 16px; color: #f8fafc; outline: none; font-size: 16px; min-width: 0; }
         
-        /* НОВОЕ: Нижний ряд ввода */
-        .input-row { width: 100%; display: flex; align-items: center; gap: 8px; }
+        /* ВОЗВРАЩЕНО: Оригинальная большая зеленая кнопка */
+        #send-btn { background: #00a884; border: none; color: white; height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; font-size: 14px; }
 
-        .media-btn { background: #1f2937; border: 1px solid rgba(255,255,255,0.05); color: #00ca9e; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 16px; flex-shrink: 0; transition: 0.2s; }
+        .media-btn { background: #1f2937; border: 1px solid rgba(255,255,255,0.05); color: #00ca9e; width: 42px; height: 42px; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; flex-shrink: 0; transition: 0.2s; }
         .media-btn.recording { background: #f43f5e; color: white; animation: pulse 1s infinite; border-color: transparent; }
         
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
@@ -107,13 +109,15 @@
             .bubble { max-width: 85%; }
             .video-round { width: 260px; height: 260px; }
             .audio-player { max-width: 190px; }
+            /* Адаптивность для кнопок на мобильных */
+            #text-input { height: 42px; padding: 0 12px; font-size: 16px; }
+            #send-btn { height: 42px; padding: 0 12px; }
         }
     </style>
 </head>
-</head>
 <body>
     <div id="auth-screen">
-        <h2>Вход в Goosebumps</h2>
+        <h2>Вход в WhatsApp Neo</h2>
         <div id="auth-error"></div>
         <input type="text" id="auth-user" class="auth-input" placeholder="Имя пользователя">
         <input type="password" id="auth-pass" class="auth-input" placeholder="Пароль">
@@ -144,7 +148,6 @@
             </div>
             <div id="messages"><div class="chat-placeholder" id="placeholder-text">Выберите друга из списка, чтобы начать переписку.</div></div>
             
-            <!-- ИСПРАВЛЕНО: Кнопки медиа перенесены в верхний ряд tools-row над вводом текста -->
             <div class="input-container">
                 <div class="tools-row">
                     <button id="voice-btn" class="media-btn" onclick="toggleVoiceRecord()" disabled>🎙️</button>
@@ -442,14 +445,8 @@
         formData.append('type', 'file');
         formData.append('media', file);
 
-        fetch('/api/send', {
-            method: 'POST',
-            body: formData
-        })
-        .then(() => {
-            inputElement.value = '';
-            fetchMessages();
-        })
+        fetch('/api/send', { method: 'POST', body: formData })
+        .then(() => { inputElement.value = ''; fetchMessages(); })
         .catch(err => console.error("Ошибка загрузки файла:", err));
     }
 
@@ -469,8 +466,7 @@
             formData.append('type', mediaType);
             formData.append('media', blob);
 
-            fetch('/api/send', { method: 'POST', body: formData })
-            .then(() => fetchMessages());
+            fetch('/api/send', { method: 'POST', body: formData }).then(() => fetchMessages());
         } catch (e) { console.error("Ошибка сборки медиа:", e); }
     }
     function sendMessage() {
@@ -635,7 +631,7 @@
     }
 
     function playVideoWithSound(videoElement) {
-        if (event) event.stopPropagation();
+        if (window.event) window.event.stopPropagation();
         if (!videoElement.muted) {
             videoElement.muted = true;
             videoElement.loop = true;
