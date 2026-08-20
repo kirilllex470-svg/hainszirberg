@@ -300,14 +300,31 @@
             }
         });
     }
-    function deleteFriend(friendName, isGroup, event) {
+    function deleteFriend(friendObj, event) {
         if (event) event.stopPropagation();
-        if (isGroup) { alert("Групповые конференции нельзя удалить из этого списка."); return; }
-        if (!confirm(`Удалить ${friendName} из контактов?`)) return;
         
-        const cleanNames = friendsList.filter(f => !f.isGroup && f.name.toLowerCase() !== friendName.toLowerCase()).map(f => f.name);
+        // НОВОЕ: Если это группа, вызываем логику удаления группы
+        if (friendObj.isGroup) {
+            if (!confirm(`Удалить групповую конференцию "${friendObj.name}" для всех участников?`)) return;
+            
+            fetch('/api/groups/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupId: friendObj.id })
+            }).then(() => {
+                if (isCurrentGroup && currentRoomId === friendObj.id) {
+                    resetChatArea();
+                }
+                loadFriends();
+            });
+            return;
+        }
 
-        if (!isCurrentGroup && currentPartner && currentPartner.toLowerCase() === friendName.toLowerCase()) {
+        // Логика удаления обычного друга (осталась прежней)
+        if (!confirm(`Удалить ${friendObj.name} из контактов?`)) return;
+        const cleanNames = friendsList.filter(f => !f.isGroup && f.name.toLowerCase() !== friendObj.name.toLowerCase()).map(f => f.name);
+
+        if (!isCurrentGroup && currentPartner && currentPartner.toLowerCase() === friendObj.name.toLowerCase()) {
             resetChatArea();
         }
 
@@ -317,6 +334,7 @@
             body: JSON.stringify({ user: currentUser, friends: cleanNames })
         }).then(() => loadFriends());
     }
+
 
     function resetChatArea() {
         currentPartner = null; currentRoomId = null; isCurrentGroup = false;
@@ -371,45 +389,7 @@
             body: JSON.stringify({ user: currentUser, room: roomId })
         }).then(() => loadFriends());
     }
-
-    function renderFriends() {
-        const box = document.getElementById('friends-box');
-        box.innerHTML = '';
-        if (friendsList.length === 0) { box.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b; font-size:13px;">Список контактов пуст</div>`; return; }
-        
-        friendsList.forEach(friend => {
-            let activeId = friend.isGroup ? friend.id : `${[currentUser.toLowerCase(), friend.name.toLowerCase()].sort()}_${[currentUser.toLowerCase(), friend.name.toLowerCase()].sort()}`;
-            const isActive = currentRoomId && currentRoomId === activeId;
-            const item = document.createElement('div');
-            item.className = `friend-item ${isActive ? 'active' : ''}`;
-            item.onclick = () => selectChat(friend);
-            
-            const badgeHTML = (friend.unread > 0 && !isActive) ? `<div class="unread-badge">${friend.unread}</div>` : '';
-            const timeHTML = friend.time ? `<div class="friend-time-label">${friend.time}</div>` : '';
-            const displayName = friend.isGroup ? `👥 ${friend.name}` : friend.name;
-            const delBtnHTML = friend.isGroup ? '' : `<button class="delete-friend-btn" onclick="deleteFriend('${friend.name}', false, event)">&times;</button>`;
-            
-            item.innerHTML = `
-                <div class="friend-info">
-                    <div class="avatar" style="width:36px; height:36px; font-size:13px; background:rgba(255,255,255,0.05); color:#00ca9e; border:1px solid rgba(255,255,255,0.05); border-radius:10px;">
-                        ${friend.name.substring(0,2)}
-                    </div>
-                    <div class="friend-meta">
-                        <div class="friend-name">${displayName}</div>
-                        <div class="friend-last-msg">${friend.lastMessage}</div>
-                    </div>
-                    <div class="friend-status-box">
-                        ${timeHTML}
-                        ${badgeHTML}
-                    </div>
-                </div>
-                ${delBtnHTML}
-            `;
-            box.appendChild(item);
-        });
-    }
-
-    function logout() {
+        function logout() {
         clearInterval(updateInterval); updateInterval = null;
         localStorage.removeItem('chat_username');
         currentUser = null; currentPartner = null; currentRoomId = null; isCurrentGroup = false; friendsList = [];
