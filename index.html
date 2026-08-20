@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Goosebumps Premium</title>
+    <title>WhatsApp Premium</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, sans-serif; }
         html, body { height: 100%; width: 100%; overflow: hidden; background: #0f172a; }
@@ -27,6 +27,10 @@
         .search-input { flex: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 15px; outline: none; min-width: 0; }
         .add-friend-btn { background: rgba(0, 168, 132, 0.2); color: #00ca9e; border: 1px solid rgba(0, 168, 132, 0.3); padding: 0 14px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 15px; }
         .create-group-btn { width: 100%; padding: 8px; background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
+
+        /* НАШЕ НОВОЕ: Красивая плашка для пересланного сообщения */
+        .msg-forwarded-label { font-size: 11px; font-style: italic; color: rgba(255, 255, 255, 0.5); padding-bottom: 3px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
+        .other-msg .msg-forwarded-label { color: #94a3b8; }
         .friends-list { flex: 1; overflow-y: auto; padding: 8px; }
         .friend-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 16px; margin-bottom: 4px; cursor: pointer; border: 1px solid transparent; }
         .friend-item.active { background: rgba(0, 168, 132, 0.15); border: 1px solid rgba(0, 168, 132, 0.2); }
@@ -61,9 +65,6 @@
         
         .msg-author { font-size: 12px; font-weight: 600; color: #38bdf8; padding-bottom: 3px; }
         .my-msg .msg-author { color: #a7f3d0; }
-        
-        .msg-text { padding-bottom: 4px; }
-        .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); text-align: right; margin-top: 2px; }
         
         .video-round { width: 300px; height: 300px; border-radius: 50%; object-fit: cover; border: 4px solid #00a884; box-shadow: 0 6px 20px rgba(0,0,0,0.4); background: black; display: block; cursor: pointer; transition: transform 0.2s ease; }
         .video-round:active { transform: scale(0.98); }
@@ -117,7 +118,7 @@
 </head>
 <body>
     <div id="auth-screen">
-        <h2>Вход в Goosebumps</h2>
+        <h2>Вход в WhatsApp Neo</h2>
         <div id="auth-error"></div>
         <input type="text" id="auth-user" class="auth-input" placeholder="Имя пользователя">
         <input type="password" id="auth-pass" class="auth-input" placeholder="Пароль">
@@ -206,6 +207,7 @@
     let activeMessageId = null;
     let activeMessageText = null;
     let activeMessageType = null;
+    let activeMessageOriginalSender = null; // ЗАПОМИНАЕМ АВТОРА ДЛЯ ПЕРЕСЫЛКИ
 
     const messagesDiv = document.getElementById('messages');
 
@@ -430,7 +432,6 @@
         document.getElementById('auth-screen').style.display = 'block';
         document.getElementById('text-input').setAttribute('disabled', 'true');
     }
-
     function toggleVoiceRecord() {
         const btn = document.getElementById('voice-btn');
         if (audioRecorder && audioRecorder.state === "recording") {
@@ -463,6 +464,7 @@
             }).catch(() => alert("Нет доступа к микрофону!"));
         }
     }
+
     function toggleVideoRecord() {
         const btn = document.getElementById('video-btn');
         const preview = document.getElementById('video-preview');
@@ -525,24 +527,6 @@
         .catch(err => console.error("Ошибка загрузки файла:", err));
     }
 
-    function sendMedia(base64Data, mediaType) {
-        if (!currentUser || !currentRoomId) return;
-        try {
-            const parts = base64Data.split(';base64,');
-            const contentType = parts[0].split(':')[1];
-            const raw = window.atob(parts[1]);
-            const uInt8Array = new Uint8Array(raw.length);
-            for (let i = 0; i < raw.length; ++i) { uInt8Array[i] = raw.charCodeAt(i); }
-            const blob = new Blob([uInt8Array], { type: contentType });
-            const formData = new FormData();
-            formData.append('sender', currentUser);
-            formData.append('room', currentRoomId);
-            formData.append('type', mediaType);
-            formData.append('media', blob, mediaType === 'audio' ? 'voice.webm' : 'video.mp4');
-            fetch('/api/send', { method: 'POST', body: formData }).then(() => fetchMessages());
-        } catch (e) { console.error("Ошибка сборки медиа:", e); }
-    }
-
     function sendMessage() {
         const textInput = document.getElementById('text-input');
         const text = textInput.value.trim();
@@ -555,12 +539,13 @@
         fetch('/api/send', { method: 'POST', body: formData })
         .then(() => { textInput.value = ''; fetchMessages(); });
     }
-
-    function openMessageMenu(event, messageId, messageText, messageType) {
+    function openMessageMenu(event, messageId, messageText, messageType, originalSender) {
         if (event) event.stopPropagation();
         activeMessageId = messageId;
         activeMessageText = messageText;
         activeMessageType = messageType;
+        activeMessageOriginalSender = originalSender; 
+
         const menu = document.getElementById('msg-context-menu');
         menu.style.display = 'block';
         menu.style.left = `${event.clientX}px`;
@@ -568,6 +553,7 @@
     }
 
     document.addEventListener('click', () => { document.getElementById('msg-context-menu').style.display = 'none'; });
+
     function triggerDeleteMessage() {
         if (!confirm("Удалить это сообщение?")) return;
         fetch('/api/messages/delete', {
@@ -599,6 +585,10 @@
 
     function executeForward(targetObj) {
         let targetRoomId = targetObj.isGroup ? targetObj.id : `${[currentUser.toLowerCase(), targetObj.name.toLowerCase()].sort()}_${[currentUser.toLowerCase(), targetObj.name.toLowerCase()].sort()}`;
+        
+        // Определяем, кто был автором: если сообщение уже переслано, сохраняем цепочку, иначе берем текущего автора
+        let originalAuthor = activeMessageOriginalSender || currentUser;
+
         if (activeMessageType === 'audio' || activeMessageType === 'video' || activeMessageType === 'file') {
             let fileUrl = activeMessageText;
             if (activeMessageType === 'file') { try { fileUrl = JSON.parse(activeMessageText).path; } catch(e) {} }
@@ -607,6 +597,7 @@
                 formData.append('sender', currentUser);
                 formData.append('room', targetRoomId);
                 formData.append('type', activeMessageType);
+                formData.append('forwardedFrom', originalAuthor);
                 formData.append('media', blob, activeMessageType === 'file' ? 'forwarded_file' : 'media_file');
                 fetch('/api/send', { method: 'POST', body: formData })
                 .then(() => { closeForwardModal(); alert(`Переслано в ${targetObj.name}`); loadFriends(); });
@@ -617,6 +608,8 @@
             formData.append('room', targetRoomId);
             formData.append('text', activeMessageText);
             formData.append('type', 'text');
+            formData.append('forwardedFrom', originalAuthor);
+
             fetch('/api/send', { method: 'POST', body: formData })
             .then(() => { closeForwardModal(); alert(`Переслано в ${targetObj.name}`); loadFriends(); });
         }
@@ -634,6 +627,7 @@
                 const row = document.createElement('div');
                 const isMy = msg.sender.toLowerCase() === currentUser.toLowerCase();
                 row.className = `message-row ${isMy ? 'my-msg' : 'other-msg'}`;
+                
                 let contentHTML = '';
                 if (msg.type === 'audio') { contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`; }
                 else if (msg.type === 'video') { contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop onclick="playVideoWithSound(this)"></video>`; }
@@ -647,11 +641,17 @@
                         }
                     } catch(e) { contentHTML = `<div class="msg-text">Поврежденный файл</div>`; }
                 } else { contentHTML = `<div class="msg-text">${msg.text}</div>`; }
+                
                 const bubble = document.createElement('div');
                 bubble.className = 'bubble';
+                
+                // Рендерим плашку пересылки, если поле существует
+                const forwardHTML = msg.forwardedFrom ? `<div class="msg-forwarded-label">↪ Переслано от: ${msg.forwardedFrom}</div>` : '';
                 const authorHTML = (isCurrentGroup && !isMy) ? `<div class="msg-author">${msg.sender}</div>` : '';
-                bubble.innerHTML = `${authorHTML}${contentHTML}<div class="msg-time">${msg.time}</div>`;
-                bubble.onclick = (e) => openMessageMenu(e, msg.id, msg.text, msg.type);
+                
+                bubble.innerHTML = `${forwardHTML}${authorHTML}${contentHTML}<div class="msg-time">${msg.time}</div>`;
+                bubble.onclick = (e) => openMessageMenu(e, msg.id, msg.text, msg.type, msg.forwardedFrom || msg.sender);
+                
                 row.appendChild(bubble);
                 messagesDiv.appendChild(row);
             });
