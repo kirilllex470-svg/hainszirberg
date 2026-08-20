@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Goosebumps Premium</title>
+    <title>WhatsApp Premium</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', -apple-system, sans-serif; }
         html, body { height: 100%; width: 100%; overflow: hidden; background: #0f172a; }
@@ -32,7 +32,6 @@
         .friend-name { font-size: 15px; color: #e2e8f0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .friend-last-msg { font-size: 13px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
         .friend-item.active .friend-last-msg { color: #00ca9e; }
-        
         .friend-status-box { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 4px; flex-shrink: 0; }
         .friend-time-label { font-size: 11px; color: #64748b; }
         .friend-item.active .friend-time-label { color: #00ca9e; }
@@ -52,6 +51,7 @@
         .message-row { display: flex; width: 100%; }
         .message-row.my-msg { justify-content: flex-end; }
         .message-row.other-msg { justify-content: flex-start; }
+        
         .bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 15px; color: #f1f5f9; position: relative; word-break: break-word; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; }
         .other-msg .bubble { background: #1e293b; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
@@ -62,14 +62,21 @@
         .video-round:active { transform: scale(0.98); }
         .audio-player { outline: none; height: 40px; max-width: 220px; display: block; margin-top: 2px; }
         
-        /* КОНТЕКСТНОЕ МЕНЮ */
+        /* СТИЛИ ДЛЯ ОТПРАВЛЕННЫХ ФАЙЛОВ И КАРТИНОК */
+        .chat-image { max-width: 280px; max-height: 280px; border-radius: 12px; display: block; margin-top: 4px; border: 1px solid rgba(255,255,255,0.1); object-fit: cover; }
+        .chat-file-card { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 12px; margin-top: 4px; text-decoration: none; color: #f1f5f9; border: 1px solid rgba(255,255,255,0.05); }
+        .chat-file-icon { font-size: 24px; }
+        .chat-file-info { display: flex; flex-direction: column; min-width: 0; }
+        .chat-file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #00ca9e; }
+        .chat-file-action { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+
+        /* КОНТЕКСТНОЕ МЕНЮ И МОДАЛКИ */
         .context-menu { position: fixed; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; z-index: 1000; overflow: hidden; padding: 4px 0; min-width: 140px; }
         .context-menu button { background: transparent; border: none; color: #f1f5f9; width: 100%; text-align: left; padding: 10px 16px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .context-menu button:hover { background: rgba(255,255,255,0.05); color: #00ca9e; }
         .context-menu button.delete-btn { color: #f43f5e; }
         .context-menu button.delete-btn:hover { background: rgba(244,63,94,0.1); }
         
-        /* МОДАЛЬНОЕ ОКНО ПЕРЕСЫЛКИ */
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-box { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; border-radius: 20px; padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; max-height: 70vh; }
         .modal-box h3 { color: #f8fafc; margin-bottom: 16px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
@@ -101,7 +108,7 @@
 </head>
 <body>
     <div id="auth-screen">
-        <h2>Вход в Goosebumps</h2>
+        <h2>Вход в WhatsApp Neo</h2>
         <div id="auth-error"></div>
         <input type="text" id="auth-user" class="auth-input" placeholder="Имя пользователя">
         <input type="password" id="auth-pass" class="auth-input" placeholder="Пароль">
@@ -116,7 +123,7 @@
                 <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
             <div class="search-container">
-                <input type="text" id="new-friend-name" class="search-input" placeholder="Введите индефикатор Goosebumps...">
+                <input type="text" id="new-friend-name" class="search-input" placeholder="Имя друга...">
                 <button class="add-friend-btn" onclick="addFriend()">+</button>
             </div>
             <div class="friends-list" id="friends-box"></div>
@@ -134,13 +141,16 @@
             <div class="input-container">
                 <button id="voice-btn" class="media-btn" onclick="toggleVoiceRecord()" disabled>🎙️</button>
                 <button id="video-btn" class="media-btn" onclick="toggleVideoRecord()" disabled>🎥</button>
+                <!-- Добавлена кнопка скрепки и скрытый инпут выбора любых файлов -->
+                <button id="file-btn" class="media-btn" onclick="document.getElementById('hidden-file-input').click()" disabled>📎</button>
+                <input type="file" id="hidden-file-input" style="display:none;" onchange="uploadAnyFile(this)">
+                
                 <input type="text" id="text-input" placeholder="Сообщение..." disabled>
                 <button id="send-btn" onclick="sendMessage()">ОТПРАВИТЬ</button>
             </div>
         </div>
     </div>
 
-    <!-- ВСПЛЫВАЮЩИЕ ЭЛЕМЕНТЫ КОНТЕКСТА И ПЕРЕСЫЛКИ -->
     <div id="msg-context-menu" class="context-menu">
         <button onclick="triggerForwardMessage()">🔄 Переслать</button>
         <button id="menu-delete-btn" class="delete-btn" onclick="triggerDeleteMessage()">🗑️ Удалить</button>
@@ -166,7 +176,6 @@
     let videoChunks = [];
     let videoStreamRef = null;
 
-    // Переменные для пересылки и удаления
     let activeMessageId = null;
     let activeMessageText = null;
     let activeMessageType = null;
@@ -250,6 +259,7 @@
             document.getElementById('text-input').setAttribute('disabled', 'true');
             document.getElementById('voice-btn').setAttribute('disabled', 'true');
             document.getElementById('video-btn').setAttribute('disabled', 'true');
+            document.getElementById('file-btn').setAttribute('disabled', 'true');
             messagesDiv.innerHTML = `<div class="chat-placeholder">Выберите друга из списка контактов слева.</div>`;
         }
 
@@ -272,6 +282,7 @@
         document.getElementById('text-input').removeAttribute('disabled');
         document.getElementById('voice-btn').removeAttribute('disabled');
         document.getElementById('video-btn').removeAttribute('disabled');
+        document.getElementById('file-btn').removeAttribute('disabled');
         document.getElementById('text-input').placeholder = "Написать сообщение...";
         if (window.innerWidth < 768) { document.getElementById('app-sidebar').classList.add('hidden'); }
         messagesDiv.innerHTML = '';
@@ -335,6 +346,7 @@
         document.getElementById('text-input').setAttribute('disabled', 'true');
         document.getElementById('voice-btn').setAttribute('disabled', 'true');
         document.getElementById('video-btn').setAttribute('disabled', 'true');
+        document.getElementById('file-btn').setAttribute('disabled', 'true');
     }
     function toggleVoiceRecord() {
         const btn = document.getElementById('voice-btn');
@@ -409,6 +421,27 @@
                 btn.textContent = "🛑";
             }).catch(err => { console.error(err); alert("Нет доступа к камере или микрофону!"); });
         }
+    }
+
+    function uploadAnyFile(inputElement) {
+        if (!inputElement.files || inputElement.files.length === 0) return;
+        const file = inputElement.files[0];
+        
+        const formData = new FormData();
+        formData.append('sender', currentUser);
+        formData.append('room', currentRoomId);
+        formData.append('type', 'file');
+        formData.append('media', file);
+
+        fetch('/api/send', {
+            method: 'POST',
+            body: formData
+        })
+        .then(() => {
+            inputElement.value = '';
+            fetchMessages();
+        })
+        .catch(err => console.error("Ошибка загрузки файла:", err));
     }
 
     function sendMedia(base64Data, mediaType) {
@@ -498,8 +531,12 @@
         const sorted = [currentUser.toLowerCase(), targetPartner.toLowerCase()].sort();
         const targetRoomId = `${sorted}_${sorted}`;
 
-        if (activeMessageType === 'audio' || activeMessageType === 'video') {
-            fetch(activeMessageText)
+        if (activeMessageType === 'audio' || activeMessageType === 'video' || activeMessageType === 'file') {
+            let fileUrl = activeMessageText;
+            if (activeMessageType === 'file') {
+                try { fileUrl = JSON.parse(activeMessageText).path; } catch(e) {}
+            }
+            fetch(fileUrl)
                 .then(res => res.blob())
                 .then(blob => {
                     const formData = new FormData();
@@ -545,6 +582,24 @@
                         contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`;
                     } else if (msg.type === 'video') {
                         contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop onclick="playVideoWithSound(this)"></video>`;
+                    } else if (msg.type === 'file') {
+                        try {
+                            const fileObj = JSON.parse(msg.text);
+                            const ext = fileObj.name.split('.').pop().toLowerCase();
+                            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                                contentHTML = `<img class="chat-image" src="${fileObj.path}" alt="Изображение" onclick="window.open(this.src)">`;
+                            } else {
+                                contentHTML = `<a href="${fileObj.path}" target="_blank" class="chat-file-card">
+                                    <span class="chat-file-icon">📄</span>
+                                    <div class="chat-file-info">
+                                        <span class="chat-file-name">${fileObj.name}</span>
+                                        <span class="chat-file-action">Открыть / Скачать</span>
+                                    </div>
+                                </a>`;
+                            }
+                        } catch(e) {
+                            contentHTML = `<div class="msg-text">Поврежденный файл</div>`;
+                        }
                     } else {
                         contentHTML = `<div class="msg-text">${msg.text}</div>`;
                     }
