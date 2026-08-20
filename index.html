@@ -61,6 +61,7 @@
         
         .msg-author { font-size: 12px; font-weight: 600; color: #38bdf8; padding-bottom: 3px; }
         .my-msg .msg-author { color: #a7f3d0; }
+        
         .msg-text { padding-bottom: 4px; }
         .msg-time { font-size: 10px; color: rgba(255, 255, 255, 0.5); text-align: right; margin-top: 2px; }
         
@@ -74,7 +75,6 @@
         .chat-file-info { display: flex; flex-direction: column; min-width: 0; }
         .chat-file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #00ca9e; }
         .chat-file-action { font-size: 11px; color: #94a3b8; margin-top: 1px; }
-
         .context-menu { position: fixed; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; z-index: 1000; overflow: hidden; padding: 4px 0; min-width: 140px; }
         .context-menu button { background: transparent; border: none; color: #f1f5f9; width: 100%; text-align: left; padding: 10px 16px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .context-menu button:hover { background: rgba(255,255,255,0.05); color: #00ca9e; }
@@ -89,6 +89,7 @@
         .modal-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(15,23,42,0.4); border: 1px solid rgba(255,255,255,0.02); border-radius: 12px; cursor: pointer; color: #e2e8f0; font-weight: 500; }
         .modal-item:hover { background: rgba(0,168,132,0.15); border-color: rgba(0,168,132,0.2); }
         .modal-forward-icon { color: #00ca9e; font-size: 16px; }
+
         .input-container { background: #111827; height: auto; min-height: 116px; display: flex; flex-direction: column; padding: 12px 15px; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
         .tools-row { width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding-left: 2px; }
         .input-row { width: 100%; display: flex; align-items: center; gap: 10px; }
@@ -153,9 +154,9 @@
             
             <div class="input-container">
                 <div class="tools-row">
-                    <button id="voice-btn" class="media-btn" onclick="toggleVoiceRecord()" disabled>🎙️</button>
-                    <button id="video-btn" class="media-btn" onclick="toggleVideoRecord()" disabled>🎥</button>
-                    <button id="file-btn" class="media-btn" onclick="document.getElementById('hidden-file-input').click()" disabled>📎</button>
+                    <button id="voice-btn" class="media-btn" onclick="toggleVoiceRecord()">🎙️</button>
+                    <button id="video-btn" class="media-btn" onclick="toggleVideoRecord()">🎥</button>
+                    <button id="file-btn" class="media-btn" onclick="document.getElementById('hidden-file-input').click()">📎</button>
                     <input type="file" id="hidden-file-input" style="display:none;" onchange="uploadAnyFile(this)">
                 </div>
                 <div class="input-row">
@@ -188,7 +189,7 @@
         </div>
     </div>
 <script>
-       let currentUser = localStorage.getItem('chat_username') || null;
+    let currentUser = localStorage.getItem('chat_username') || null;
     let currentPartner = null;
     let currentRoomId = null;
     let isCurrentGroup = false; 
@@ -258,10 +259,10 @@
         if (!name) return;
         if (name.toLowerCase() === currentUser.toLowerCase()) { alert("Нельзя добавить себя!"); return; }
         
-        const plainFriends = friendsList.filter(f => !f.isGroup);
-        if (plainFriends.some(f => f.name.toLowerCase() === name.toLowerCase())) { alert("Этот пользователь уже в списке!"); return; }
+        const isAlreadyAdded = friendsList.some(f => !f.isGroup && f.name.toLowerCase() === name.toLowerCase());
+        if (isAlreadyAdded) { alert("Этот пользователь уже в списке!"); return; }
         
-        const cleanNames = plainFriends.map(f => f.name);
+        const cleanNames = friendsList.filter(f => !f.isGroup).map(f => f.name);
         cleanNames.push(name);
 
         fetch('/api/friends/save', {
@@ -338,9 +339,7 @@
         document.getElementById('partner-display-name').textContent = "Чат не выбран";
         document.getElementById('chat-status').style.display = "none";
         document.getElementById('text-input').setAttribute('disabled', 'true');
-        document.getElementById('voice-btn').setAttribute('disabled', 'true');
-        document.getElementById('video-btn').setAttribute('disabled', 'true');
-        document.getElementById('file-btn').setAttribute('disabled', 'true');
+        document.getElementById('text-input').placeholder = "Сообщение...";
         messagesDiv.innerHTML = `<div class="chat-placeholder">Выберите друга или группу из списка контактов слева.</div>`;
     }
 
@@ -364,9 +363,6 @@
         
         lastMessagesCount = 0; 
         document.getElementById('text-input').removeAttribute('disabled');
-        document.getElementById('voice-btn').removeAttribute('disabled');
-        document.getElementById('video-btn').removeAttribute('disabled');
-        document.getElementById('file-btn').removeAttribute('disabled');
         document.getElementById('text-input').placeholder = "Написать сообщение...";
         if (window.innerWidth < 768) { document.getElementById('app-sidebar').classList.add('hidden'); }
         messagesDiv.innerHTML = '';
@@ -433,10 +429,8 @@
         document.getElementById('app-screen').style.display = 'none';
         document.getElementById('auth-screen').style.display = 'block';
         document.getElementById('text-input').setAttribute('disabled', 'true');
-        document.getElementById('voice-btn').setAttribute('disabled', 'true');
-        document.getElementById('video-btn').setAttribute('disabled', 'true');
-        document.getElementById('file-btn').setAttribute('disabled', 'true');
     }
+
     function toggleVoiceRecord() {
         const btn = document.getElementById('voice-btn');
         if (audioRecorder && audioRecorder.state === "recording") {
@@ -469,7 +463,6 @@
             }).catch(() => alert("Нет доступа к микрофону!"));
         }
     }
-
     function toggleVideoRecord() {
         const btn = document.getElementById('video-btn');
         const preview = document.getElementById('video-preview');
@@ -520,7 +513,7 @@
 
     function uploadAnyFile(inputElement) {
         if (!inputElement.files || inputElement.files.length === 0) return;
-        const file = inputElement.files[0];
+        const file = inputElement.files[0]; 
         const formData = new FormData();
         formData.append('sender', currentUser);
         formData.append('room', currentRoomId);
@@ -530,6 +523,24 @@
         fetch('/api/send', { method: 'POST', body: formData })
         .then(() => { inputElement.value = ''; fetchMessages(); })
         .catch(err => console.error("Ошибка загрузки файла:", err));
+    }
+
+    function sendMedia(base64Data, mediaType) {
+        if (!currentUser || !currentRoomId) return;
+        try {
+            const parts = base64Data.split(';base64,');
+            const contentType = parts[0].split(':')[1];
+            const raw = window.atob(parts[1]);
+            const uInt8Array = new Uint8Array(raw.length);
+            for (let i = 0; i < raw.length; ++i) { uInt8Array[i] = raw.charCodeAt(i); }
+            const blob = new Blob([uInt8Array], { type: contentType });
+            const formData = new FormData();
+            formData.append('sender', currentUser);
+            formData.append('room', currentRoomId);
+            formData.append('type', mediaType);
+            formData.append('media', blob, mediaType === 'audio' ? 'voice.webm' : 'video.mp4');
+            fetch('/api/send', { method: 'POST', body: formData }).then(() => fetchMessages());
+        } catch (e) { console.error("Ошибка сборки медиа:", e); }
     }
 
     function sendMessage() {
@@ -544,6 +555,7 @@
         fetch('/api/send', { method: 'POST', body: formData })
         .then(() => { textInput.value = ''; fetchMessages(); });
     }
+
     function openMessageMenu(event, messageId, messageText, messageType) {
         if (event) event.stopPropagation();
         activeMessageId = messageId;
@@ -556,7 +568,6 @@
     }
 
     document.addEventListener('click', () => { document.getElementById('msg-context-menu').style.display = 'none'; });
-
     function triggerDeleteMessage() {
         if (!confirm("Удалить это сообщение?")) return;
         fetch('/api/messages/delete', {
@@ -607,7 +618,7 @@
             formData.append('text', activeMessageText);
             formData.append('type', 'text');
             fetch('/api/send', { method: 'POST', body: formData })
-                .then(() => { closeForwardModal(); alert(`Переслано в ${targetObj.name}`); loadFriends(); });
+            .then(() => { closeForwardModal(); alert(`Переслано в ${targetObj.name}`); loadFriends(); });
         }
     }
 
