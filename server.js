@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const USERS_FILE = path.join(__dirname, 'users.json');
 const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
-const GROUPS_FILE = path.join(__dirname, 'groups.json');
+const GROUPS_FILE = path.join(__dirname, 'groups.json'); // База групп
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -32,7 +32,7 @@ let friendsDB = readJSON(FRIENDS_FILE, {});
 let groupsDB = readJSON(GROUPS_FILE, {});
 
 const db = {
-    lastRead: {}
+    lastRead: {} // Время последнего открытия чатов для подсчета непрочитанных
 };
 
 const server = http.createServer((req, res) => {
@@ -67,32 +67,76 @@ const server = http.createServer((req, res) => {
         return;
     }
     // 2. Получение списка чатов (Личные + Конференции) со счётчиками
-    // 4.9 Полное удаление групповой конференции
-    if (req.url === '/api/groups/delete' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => body += chunk.toString());
-        req.on('end', () => {
-            try {
-                const { groupId } = JSON.parse(body);
-                if (groupId && groupsDB[groupId]) {
-                    // 1. Удаляем саму группу из базы групп
-                    delete groupsDB[groupId];
-                    writeJSON(GROUPS_FILE, groupsDB);
-
-                    // 2. Очищаем историю сообщений этой группы, чтобы не занимать место
-                    if (roomsDB[groupId]) {
-                        delete roomsDB[groupId];
-                        writeJSON(HISTORY_FILE, roomsDB);
-                    }
-
-                    res.writeHead(200); return res.end('OK');
+    if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
+        const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        const user = myUrl.searchParams.get('user');
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
+        
+        if (user) {
+            const myLowerName = user.toLowerCase();
+            const myFriends = friendsDB[myLowerName] || [];
+            const myReads = db.lastRead[myLowerName] || {};
+            
+            const listData = myFriends.map(friendName => {
+                const friendLower = friendName.toLowerCase();
+                const sortedRoom = [myLowerName, friendLower].sort();
+                const roomId = `${sortedRoom}_${sortedRoom}`;
+                const roomMessages = roomsDB[roomId] || [];
+                
+                let lastMsgText = "Нет сообщений";
+                let lastMsgTime = "";
+                let unreadCount = 0;
+                const myLastReadTime = myReads[roomId] || 0;
+                
+                if (roomMessages.length > 0) {
+                    const lastMsg = roomMessages[roomMessages.length - 1];
+                    if (lastMsg.type === 'audio') lastMsgText = "🎙️ Голосовое сообщение";
+                    else if (lastMsg.type === 'video') lastMsgText = "🎥 Видео-кружок";
+                    else if (lastMsg.type === 'file') lastMsgText = "📎 Файл / Документ";
+                    else lastMsgText = lastMsg.text;
+                    lastMsgTime = lastMsg.time || "";
+                    
+                    roomMessages.forEach(msg => {
+                        if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) {
+                            unreadCount++;
+                        }
+                    });
                 }
-                res.writeHead(400); res.end('Bad Request');
-            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
-        });
-        return;
-    }
+                return { name: friendName, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: false };
+            });
 
+            Object.keys(groupsDB).forEach(groupId => {
+                const group = groupsDB[groupId];
+                const isParticipant = group.members.some(m => m.toLowerCase() === myLowerName);
+                
+                if (isParticipant) {
+                    const roomMessages = roomsDB[groupId] || [];
+                    let lastMsgText = "Нет сообщений";
+                    let lastMsgTime = "";
+                    let unreadCount = 0;
+                    const myLastReadTime = myReads[groupId] || 0;
+
+                    if (roomMessages.length > 0) {
+                        const lastMsg = roomMessages[roomMessages.length - 1];
+                        if (lastMsg.type === 'audio') lastMsgText = `🎙️ ${lastMsg.sender}: Голосовое`;
+                        else if (lastMsg.type === 'video') lastMsgText = `🎥 ${lastMsg.sender}: Кружок`;
+                        else if (lastMsg.type === 'file') lastMsgText = `📎 ${lastMsg.sender}: Файл`;
+                        else lastMsgText = `${lastMsg.sender}: ${lastMsg.text}`;
+                        lastMsgTime = lastMsg.time || "";
+
+                        roomMessages.forEach(msg => {
+                            if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) {
+                                unreadCount++;
+                            }
+                        });
+                    }
+                    listData.push({ id: groupId, name: group.name, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: true });
+                }
+            });
+            return res.end(JSON.stringify(listData));
+        }
+        return res.end(JSON.stringify([]));
+    }
 
     // 3. Сохранение списка друзей
     if (req.url === '/api/friends/save' && req.method === 'POST') {
@@ -110,6 +154,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
     // 3.5 Создание конференции
     if (req.url === '/api/groups/create' && req.method === 'POST') {
         let body = '';
@@ -141,8 +186,7 @@ const server = http.createServer((req, res) => {
         if (room && roomsDB[room]) return res.end(JSON.stringify(roomsDB[room]));
         return res.end(JSON.stringify([]));
     }
-
-    // 4.5 Прочтение
+    // 4.5 Фиксация прочтения чата
     if (req.url === '/api/messages/read' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -160,7 +204,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4.7 Удаление
+    // 4.7 Удаление сообщения
     if (req.url === '/api/messages/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -178,13 +222,36 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // НОВОЕ: 4.9 Полное удаление групповой конференции
+    if (req.url === '/api/groups/delete' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            try {
+                const { groupId } = JSON.parse(body);
+                if (groupId && groupsDB[groupId]) {
+                    delete groupsDB[groupId];
+                    writeJSON(GROUPS_FILE, groupsDB);
+
+                    if (roomsDB[groupId]) {
+                        delete roomsDB[groupId];
+                        writeJSON(HISTORY_FILE, roomsDB);
+                    }
+                    res.writeHead(200); return res.end('OK');
+                }
+                res.writeHead(400); res.end('Bad Request');
+            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
+        });
+        return;
+    }
+
     // 5. FormData Прием
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
             res.writeHead(400); return res.end('Ожидался FormData');
         }
-        const boundary = contentType.split('boundary=')[1];
+        const boundary = contentType.split('boundary=');
         let chunks = [];
         req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
@@ -200,14 +267,14 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const matchName = part.match(/name="([^"]+)"/);
                     if (!matchName) continue;
-                    const name = matchName[1];
+                    const name = matchName;
 
                     if (part.includes('filename="')) {
                         const fileMatch = part.match(/Content-Type:\s*([^\s\r\n]+)/);
-                        const mime = fileMatch ? fileMatch[1] : '';
+                        const mime = fileMatch ? fileMatch : '';
                         const originalNameMatch = part.match(/filename="([^"]+)"/);
                         if (originalNameMatch) {
-                            originalFileName = originalNameMatch[1];
+                            originalFileName = originalNameMatch;
                             if (originalFileName.includes('.')) {
                                 const splitName = originalFileName.split('.');
                                 fileExt = splitName[splitName.length - 1];
@@ -250,7 +317,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Раздача медиа
+    // 6. Раздача сохраненных медиа
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
