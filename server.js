@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const USERS_FILE = path.join(__dirname, 'users.json');
 const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
+const GROUPS_FILE = path.join(__dirname, 'groups.json'); // База групп
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -15,26 +16,27 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 function readJSON(filePath, defaultVal = {}) {
     try {
         if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    } catch (e) { console.error("Ошибка чтения JSON файла:", e); }
+    } catch (e) { console.error("Ошибка чтения JSON:", e); }
     return defaultVal;
 }
 
 function writeJSON(filePath, data) {
     try {
         fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-    } catch (e) { console.error("Ошибка записи JSON файла:", e); }
+    } catch (e) { console.error("Ошибка записи JSON:", e); }
 }
 
 let usersDB = readJSON(USERS_FILE, {});
 let roomsDB = readJSON(HISTORY_FILE, {});
 let friendsDB = readJSON(FRIENDS_FILE, {});
+let groupsDB = readJSON(GROUPS_FILE, {});
 
 const db = {
-    lastRead: {} // Локальная метка времени для подсчета непрочитанных уведомлений
+    lastRead: {} // Время последнего открытия чатов для подсчета непрочитанных
 };
 
 const server = http.createServer((req, res) => {
-    // 1. Авторизация и регистрация пользователей
+    // 1. Авторизация и регистрация
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -64,7 +66,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-    // 2. Получение списка друзей со счётчиком непрочитанных и текстом
+    // 2. Получение списка чатов (Личные + Группы) со счётчиками
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -75,7 +77,7 @@ const server = http.createServer((req, res) => {
             const myFriends = friendsDB[myLowerName] || [];
             const myReads = db.lastRead[myLowerName] || {};
             
-            const friendsWithLastMsg = myFriends.map(friendName => {
+            const listData = myFriends.map(friendName => {
                 const friendLower = friendName.toLowerCase();
                 const sortedRoom = [myLowerName, friendLower].sort();
                 const roomId = `${sortedRoom}_${sortedRoom}`;
@@ -84,8 +86,7 @@ const server = http.createServer((req, res) => {
                 let lastMsgText = "Нет сообщений";
                 let lastMsgTime = "";
                 let unreadCount = 0;
-                
-                const myLastReadTime = myReads[friendLower] || 0;
+                const myLastReadTime = myReads[roomId] || 0;
                 
                 if (roomMessages.length > 0) {
                     const lastMsg = roomMessages[roomMessages.length - 1];
@@ -96,26 +97,50 @@ const server = http.createServer((req, res) => {
                     lastMsgTime = lastMsg.time || "";
                     
                     roomMessages.forEach(msg => {
-                        if (msg.sender.toLowerCase() === friendLower && (msg.timestamp || 0) > myLastReadTime) {
+                        if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) {
                             unreadCount++;
                         }
                     });
                 }
-                
-                return {
-                    name: friendName,
-                    lastMessage: lastMsgText,
-                    time: lastMsgTime,
-                    unread: unreadCount
-                };
+                return { name: friendName, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: false };
             });
-            
-            return res.end(JSON.stringify(friendsWithLastMsg));
+
+            // Подтягиваем группы конференции
+            Object.keys(groupsDB).forEach(groupId => {
+                const group = groupsDB[groupId];
+                const isParticipant = group.members.some(m => m.toLowerCase() === myLowerName);
+                
+                if (isParticipant) {
+                    const roomMessages = roomsDB[groupId] || [];
+                    let lastMsgText = "Нет сообщений";
+                    let lastMsgTime = "";
+                    let unreadCount = 0;
+                    const myLastReadTime = myReads[groupId] || 0;
+
+                    if (roomMessages.length > 0) {
+                        const lastMsg = roomMessages[roomMessages.length - 1];
+                        if (lastMsg.type === 'audio') lastMsgText = `🎙️ ${lastMsg.sender}: Голосовое`;
+                        else if (lastMsg.type === 'video') lastMsgText = `🎥 ${lastMsg.sender}: Кружок`;
+                        else if (lastMsg.type === 'file') lastMsgText = `📎 ${lastMsg.sender}: Файл`;
+                        else lastMsgText = `${lastMsg.sender}: ${lastMsg.text}`;
+                        lastMsgTime = lastMsg.time || "";
+
+                        roomMessages.forEach(msg => {
+                            if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) {
+                                unreadCount++;
+                            }
+                        });
+                    }
+
+                    listData.push({ id: groupId, name: group.name, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: true });
+                }
+            });
+            return res.end(JSON.stringify(listData));
         }
         return res.end(JSON.stringify([]));
     }
 
-    // 3. Сохранение списка друзей
+    // 3. Добавление/Сохранение обычного друга
     if (req.url === '/api/friends/save' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -132,7 +157,30 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4. Отдача истории переписки
+    // 3.5 Создание конференции втроем/впятером
+    if (req.url === '/api/groups/create' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            try {
+                const { creator, groupName, members } = JSON.parse(body);
+                if (creator && groupName && Array.isArray(members)) {
+                    const groupId = `group_${crypto.randomBytes(6).toString('hex')}`;
+                    if (!members.map(m => m.toLowerCase()).includes(creator.toLowerCase())) {
+                        members.push(creator);
+                    }
+                    groupsDB[groupId] = { name: groupName, members: members, creator: creator };
+                    writeJSON(GROUPS_FILE, groupsDB);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: true, groupId }));
+                }
+                res.writeHead(400); res.end('Bad Request');
+            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
+        });
+        return;
+    }
+
+    // 4. История сообщений комнаты
     if (req.url.startsWith('/api/messages') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const room = myUrl.searchParams.get('room');
@@ -140,19 +188,17 @@ const server = http.createServer((req, res) => {
         if (room && roomsDB[room]) return res.end(JSON.stringify(roomsDB[room]));
         return res.end(JSON.stringify([]));
     }
-
     // 4.5 Фиксация прочтения чата
     if (req.url === '/api/messages/read' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
-                const { user, partner } = JSON.parse(body);
-                if (user && partner) {
+                const { user, room } = JSON.parse(body);
+                if (user && room) {
                     const uLower = user.toLowerCase();
-                    const pLower = partner.toLowerCase();
                     if (!db.lastRead[uLower]) db.lastRead[uLower] = {};
-                    db.lastRead[uLower][pLower] = Date.now();
+                    db.lastRead[uLower][room] = Date.now();
                 }
                 res.writeHead(200); return res.end('OK');
             } catch (e) { res.writeHead(400); res.end('Bad Request'); }
@@ -177,6 +223,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
     // 5. Прием сообщений FormData (Текст, Аудио, Видео, Файлы)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
@@ -184,7 +231,7 @@ const server = http.createServer((req, res) => {
             res.writeHead(400); return res.end('Ожидался FormData');
         }
 
-        const boundary = contentType.split('boundary=')[1];
+        const boundary = contentType.split('boundary=');
         let chunks = [];
 
         req.on('data', chunk => chunks.push(chunk));
@@ -202,11 +249,11 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const matchName = part.match(/name="([^"]+)"/);
                     if (!matchName) continue;
-                    const name = matchName[1];
+                    const name = matchName;
 
                     if (part.includes('filename="')) {
                         const fileMatch = part.match(/Content-Type:\s*([^\s\r\n]+)/);
-                        const mime = fileMatch ? fileMatch[1] : '';
+                        const mime = fileMatch ? fileMatch : '';
                         
                         const originalNameMatch = part.match(/filename="([^"]+)"/);
                         if (originalNameMatch) {
@@ -237,7 +284,6 @@ const server = http.createServer((req, res) => {
                     const filePath = path.join(UPLOADS_DIR, fileName);
                     fs.writeFileSync(filePath, fileBuffer);
                     
-                    // Храним либо путь к файлу, либо структуру с оригинальным именем
                     if (type === 'file') {
                         finalContent = JSON.stringify({ path: `/uploads/${fileName}`, name: originalFileName });
                     } else {
