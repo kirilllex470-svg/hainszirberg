@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const USERS_FILE = path.join(__dirname, 'users.json');
 const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
-const GROUPS_FILE = path.join(__dirname, 'groups.json'); // База групп
+const GROUPS_FILE = path.join(__dirname, 'groups.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -32,7 +32,7 @@ let friendsDB = readJSON(FRIENDS_FILE, {});
 let groupsDB = readJSON(GROUPS_FILE, {});
 
 const db = {
-    lastRead: {} // Время последнего открытия чатов для подсчета непрочитанных
+    lastRead: {}
 };
 
 const server = http.createServer((req, res) => {
@@ -177,7 +177,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     // 4. История сообщений
     if (req.url.startsWith('/api/messages') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -186,7 +185,8 @@ const server = http.createServer((req, res) => {
         if (room && roomsDB[room]) return res.end(JSON.stringify(roomsDB[room]));
         return res.end(JSON.stringify([]));
     }
-    // 4.5 Фиксация прочтения чата
+
+    // 4.5 Прочтение
     if (req.url === '/api/messages/read' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -222,7 +222,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // НОВОЕ: 4.9 Полное удаление групповой конференции
+    // 4.9 Удаление групповой конференции
     if (req.url === '/api/groups/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -232,7 +232,6 @@ const server = http.createServer((req, res) => {
                 if (groupId && groupsDB[groupId]) {
                     delete groupsDB[groupId];
                     writeJSON(GROUPS_FILE, groupsDB);
-
                     if (roomsDB[groupId]) {
                         delete roomsDB[groupId];
                         writeJSON(HISTORY_FILE, roomsDB);
@@ -245,13 +244,17 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. FormData Прием
+    // 5. FormData Прием (ИСПРАВЛЕНО split boundary)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
             res.writeHead(400); return res.end('Ожидался FormData');
         }
-        const boundary = contentType.split('boundary=');
+        
+        const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
+        const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
+        if (!boundary) { res.writeHead(400); return res.end('Не найден boundary'); }
+
         let chunks = [];
         req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
@@ -267,14 +270,14 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const matchName = part.match(/name="([^"]+)"/);
                     if (!matchName) continue;
-                    const name = matchName;
+                    const name = matchName[1];
 
                     if (part.includes('filename="')) {
                         const fileMatch = part.match(/Content-Type:\s*([^\s\r\n]+)/);
-                        const mime = fileMatch ? fileMatch : '';
+                        const mime = fileMatch ? fileMatch[1] : '';
                         const originalNameMatch = part.match(/filename="([^"]+)"/);
                         if (originalNameMatch) {
-                            originalFileName = originalNameMatch;
+                            originalFileName = originalNameMatch[1];
                             if (originalFileName.includes('.')) {
                                 const splitName = originalFileName.split('.');
                                 fileExt = splitName[splitName.length - 1];
@@ -336,7 +339,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 7. Главная
+    // 7. Главная страница
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
