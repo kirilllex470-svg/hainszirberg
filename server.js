@@ -15,14 +15,14 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 function readJSON(filePath, defaultVal = {}) {
     try {
         if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    } catch (e) { console.error("Ошибка чтения:", e); }
+    } catch (e) { console.error("Ошибка чтения файла:", e); }
     return defaultVal;
 }
 
 function writeJSON(filePath, data) {
     try {
         fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-    } catch (e) { console.error("Ошибка записи:", e); }
+    } catch (e) { console.error("Ошибка записи файла:", e); }
 }
 
 let usersDB = readJSON(USERS_FILE, {});
@@ -30,11 +30,11 @@ let roomsDB = readJSON(HISTORY_FILE, {});
 let friendsDB = readJSON(FRIENDS_FILE, {});
 
 const db = {
-    lastRead: {} // Хранилище временных меток прочтения чатов
+    lastRead: {} // Хранилище временных меток для отслеживания прочтения чатов
 };
 
 const server = http.createServer((req, res) => {
-    // 1. Авторизация и регистрация
+    // 1. Авторизация и регистрация пользователей
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -158,7 +158,25 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-    // 5. Прием сообщений (с поддержкой FormData)
+    // 4.7 Удаление сообщения из истории
+    if (req.url === '/api/messages/delete' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            try {
+                const { room, messageId } = JSON.parse(body);
+                if (room && messageId && roomsDB[room]) {
+                    roomsDB[room] = roomsDB[room].filter(msg => msg.id !== messageId);
+                    writeJSON(HISTORY_FILE, roomsDB);
+                    res.writeHead(200); return res.end('OK');
+                }
+                res.writeHead(400); res.end('Bad Request');
+            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
+        });
+        return;
+    }
+
+    // 5. Прием сообщений FormData (Текст/Медиа)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -217,6 +235,7 @@ const server = http.createServer((req, res) => {
                 if (!roomsDB[room]) roomsDB[room] = [];
                 
                 roomsDB[room].push({ 
+                    id: crypto.randomBytes(8).toString('hex'), // Уникальный ID сообщения
                     sender, 
                     text: finalContent, 
                     type: type || 'text', 
@@ -233,12 +252,11 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Стриминговая раздача медиафайлов
+    // 6. Раздача сохраненных медиафайлов
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); return res.end('File Not Found'); }
-            
             let contentType = 'application/octet-stream';
             if (req.url.endsWith('.mp4')) contentType = 'video/mp4';
             else if (req.url.endsWith('.webm')) contentType = req.url.includes('audio') ? 'audio/webm' : 'video/webm';
