@@ -62,7 +62,6 @@
         .video-round:active { transform: scale(0.98); }
         .audio-player { outline: none; height: 40px; max-width: 220px; display: block; margin-top: 2px; }
         
-        /* СТИЛИ ДЛЯ ОТПРАВЛЕННЫХ ФАЙЛОВ И КАРТИНОК */
         .chat-image { max-width: 280px; max-height: 280px; border-radius: 12px; display: block; margin-top: 4px; border: 1px solid rgba(255,255,255,0.1); object-fit: cover; }
         .chat-file-card { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 12px; margin-top: 4px; text-decoration: none; color: #f1f5f9; border: 1px solid rgba(255,255,255,0.05); }
         .chat-file-icon { font-size: 24px; }
@@ -70,7 +69,6 @@
         .chat-file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #00ca9e; }
         .chat-file-action { font-size: 11px; color: #94a3b8; margin-top: 1px; }
 
-        /* КОНТЕКСТНОЕ МЕНЮ И МОДАЛКИ */
         .context-menu { position: fixed; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; z-index: 1000; overflow: hidden; padding: 4px 0; min-width: 140px; }
         .context-menu button { background: transparent; border: none; color: #f1f5f9; width: 100%; text-align: left; padding: 10px 16px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .context-menu button:hover { background: rgba(255,255,255,0.05); color: #00ca9e; }
@@ -86,17 +84,23 @@
         .modal-item:hover { background: rgba(0,168,132,0.15); border-color: rgba(0,168,132,0.2); }
         .modal-forward-icon { color: #00ca9e; font-size: 16px; }
 
-        .input-container { background: #111827; height: 64px; display: flex; align-items: center; padding: 0 12px; gap: 8px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(0px, env(safe-area-inset-bottom)); }
-        #text-input { flex: 1; height: 42px; background: rgba(31, 41, 55, 0.7); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 0 16px; color: #f8fafc; outline: none; font-size: 16px; min-width: 0; }
-        .media-btn { background: #1f2937; border: 1px solid rgba(255,255,255,0.05); color: #00ca9e; width: 42px; height: 42px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; flex-shrink: 0; transition: 0.2s; }
-        .media-btn.recording { background: #f43f5e; color: white; animation: pulse 1s infinite; border-color: transparent; }
-        #send-btn { background: #00a884; border: none; color: white; height: 42px; padding: 0 16px; border-radius: 20px; font-weight: 600; cursor: pointer; flex-shrink: 0; font-size: 14px; }
+        /* ИСПРАВЛЕНО: Двухуровневый контейнер для ввода и панели инструментов */
+        .input-container { background: #111827; height: auto; min-height: 104px; display: flex; flex-direction: column; padding: 10px 12px; gap: 8px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+        
+        /* НОВОЕ: Верхний ряд кнопок */
+        .tools-row { width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding-left: 4px; }
+        
+        /* НОВОЕ: Нижний ряд ввода */
+        .input-row { width: 100%; display: flex; align-items: center; gap: 8px; }
 
+        .media-btn { background: #1f2937; border: 1px solid rgba(255,255,255,0.05); color: #00ca9e; width: 38px; height: 38px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 16px; flex-shrink: 0; transition: 0.2s; }
+        .media-btn.recording { background: #f43f5e; color: white; animation: pulse 1s infinite; border-color: transparent; }
+        
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
         @media (max-width: 767px) {
             #app-screen { width: 100%; height: 100%; border-radius: 0; }
-            .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; }
+            .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; height: 100%; background: #0f172a; }
             .sidebar.hidden { transform: translateX(-100%); }
             .chat-area { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; z-index: 4; }
             .back-btn { display: block; }
@@ -105,6 +109,7 @@
             .audio-player { max-width: 190px; }
         }
     </style>
+</head>
 </head>
 <body>
     <div id="auth-screen">
@@ -138,15 +143,19 @@
                 </div>
             </div>
             <div id="messages"><div class="chat-placeholder" id="placeholder-text">Выберите друга из списка, чтобы начать переписку.</div></div>
+            
+            <!-- ИСПРАВЛЕНО: Кнопки медиа перенесены в верхний ряд tools-row над вводом текста -->
             <div class="input-container">
-                <button id="voice-btn" class="media-btn" onclick="toggleVoiceRecord()" disabled>🎙️</button>
-                <button id="video-btn" class="media-btn" onclick="toggleVideoRecord()" disabled>🎥</button>
-                <!-- Добавлена кнопка скрепки и скрытый инпут выбора любых файлов -->
-                <button id="file-btn" class="media-btn" onclick="document.getElementById('hidden-file-input').click()" disabled>📎</button>
-                <input type="file" id="hidden-file-input" style="display:none;" onchange="uploadAnyFile(this)">
-                
-                <input type="text" id="text-input" placeholder="Сообщение..." disabled>
-                <button id="send-btn" onclick="sendMessage()">ОТПРАВИТЬ</button>
+                <div class="tools-row">
+                    <button id="voice-btn" class="media-btn" onclick="toggleVoiceRecord()" disabled>🎙️</button>
+                    <button id="video-btn" class="media-btn" onclick="toggleVideoRecord()" disabled>🎥</button>
+                    <button id="file-btn" class="media-btn" onclick="document.getElementById('hidden-file-input').click()" disabled>📎</button>
+                    <input type="file" id="hidden-file-input" style="display:none;" onchange="uploadAnyFile(this)">
+                </div>
+                <div class="input-row">
+                    <input type="text" id="text-input" placeholder="Сообщение..." disabled>
+                    <button id="send-btn" onclick="sendMessage()">ОТПРАВИТЬ</button>
+                </div>
             </div>
         </div>
     </div>
@@ -464,7 +473,6 @@
             .then(() => fetchMessages());
         } catch (e) { console.error("Ошибка сборки медиа:", e); }
     }
-
     function sendMessage() {
         const textInput = document.getElementById('text-input');
         const text = textInput.value.trim();
@@ -495,6 +503,7 @@
     document.addEventListener('click', () => {
         document.getElementById('msg-context-menu').style.display = 'none';
     });
+
     function triggerDeleteMessage() {
         if (!confirm("Удалить это сообщение?")) return;
         fetch('/api/messages/delete', {
