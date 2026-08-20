@@ -15,14 +15,14 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 function readJSON(filePath, defaultVal = {}) {
     try {
         if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    } catch (e) { console.error("Ошибка чтения файла:", e); }
+    } catch (e) { console.error("Ошибка чтения JSON файла:", e); }
     return defaultVal;
 }
 
 function writeJSON(filePath, data) {
     try {
         fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-    } catch (e) { console.error("Ошибка записи файла:", e); }
+    } catch (e) { console.error("Ошибка записи JSON файла:", e); }
 }
 
 let usersDB = readJSON(USERS_FILE, {});
@@ -30,7 +30,7 @@ let roomsDB = readJSON(HISTORY_FILE, {});
 let friendsDB = readJSON(FRIENDS_FILE, {});
 
 const db = {
-    lastRead: {} // Хранилище временных меток для отслеживания прочтения чатов
+    lastRead: {} // Локальная метка времени для подсчета непрочитанных уведомлений
 };
 
 const server = http.createServer((req, res) => {
@@ -64,7 +64,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-    // 2. Получение списка друзей со счётчиком непрочитанных
+    // 2. Получение списка друзей со счётчиком непрочитанных и текстом
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -91,6 +91,7 @@ const server = http.createServer((req, res) => {
                     const lastMsg = roomMessages[roomMessages.length - 1];
                     if (lastMsg.type === 'audio') lastMsgText = "🎙️ Голосовое сообщение";
                     else if (lastMsg.type === 'video') lastMsgText = "🎥 Видео-кружок";
+                    else if (lastMsg.type === 'file') lastMsgText = "📎 Файл / Документ";
                     else lastMsgText = lastMsg.text;
                     lastMsgTime = lastMsg.time || "";
                     
@@ -140,7 +141,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 4.5 Фиксация прочтения чата пользователем
+    // 4.5 Фиксация прочтения чата
     if (req.url === '/api/messages/read' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -158,7 +159,8 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-    // 4.7 Удаление сообщения из истории
+
+    // 4.7 Удаление сообщения
     if (req.url === '/api/messages/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -175,8 +177,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
-    // 5. Прием сообщений FormData (Текст/Медиа)
+    // 5. Прием сообщений FormData (Текст, Аудио, Видео, Файлы)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -194,7 +195,8 @@ const server = http.createServer((req, res) => {
 
             let fields = {};
             let fileBuffer = null;
-            let fileExt = 'webm';
+            let fileExt = 'bin';
+            let originalFileName = '';
 
             for (let part of parts) {
                 if (part.includes('Content-Disposition: form-data;')) {
@@ -205,8 +207,15 @@ const server = http.createServer((req, res) => {
                     if (part.includes('filename="')) {
                         const fileMatch = part.match(/Content-Type:\s*([^\s\r\n]+)/);
                         const mime = fileMatch ? fileMatch[1] : '';
-                        if (mime.includes('mp4')) fileExt = 'mp4';
-                        else if (mime.includes('ogg')) fileExt = 'ogg';
+                        
+                        const originalNameMatch = part.match(/filename="([^"]+)"/);
+                        if (originalNameMatch) {
+                            originalFileName = originalNameMatch[1];
+                            if (originalFileName.includes('.')) {
+                                const splitName = originalFileName.split('.');
+                                fileExt = splitName[splitName.length - 1];
+                            }
+                        }
 
                         const headerEnd = part.indexOf('\r\n\r\n') + 4;
                         const fileContentBinary = part.substring(headerEnd, part.length - 2);
@@ -223,11 +232,17 @@ const server = http.createServer((req, res) => {
             if (sender && room) {
                 let finalContent = text || '';
 
-                if ((type === 'audio' || type === 'video') && fileBuffer && fileBuffer.length > 0) {
+                if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
                     const fileName = `${type}_${crypto.randomBytes(8).toString('hex')}.${fileExt}`;
                     const filePath = path.join(UPLOADS_DIR, fileName);
                     fs.writeFileSync(filePath, fileBuffer);
-                    finalContent = `/uploads/${fileName}`;
+                    
+                    // Храним либо путь к файлу, либо структуру с оригинальным именем
+                    if (type === 'file') {
+                        finalContent = JSON.stringify({ path: `/uploads/${fileName}`, name: originalFileName });
+                    } else {
+                        finalContent = `/uploads/${fileName}`;
+                    }
                 }
 
                 const now = new Date();
@@ -235,7 +250,7 @@ const server = http.createServer((req, res) => {
                 if (!roomsDB[room]) roomsDB[room] = [];
                 
                 roomsDB[room].push({ 
-                    id: crypto.randomBytes(8).toString('hex'), // Уникальный ID сообщения
+                    id: crypto.randomBytes(8).toString('hex'),
                     sender, 
                     text: finalContent, 
                     type: type || 'text', 
@@ -252,14 +267,20 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Раздача сохраненных медиафайлов
+    // 6. Раздача сохраненных медиафайлов и документов
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); return res.end('File Not Found'); }
+            
             let contentType = 'application/octet-stream';
-            if (req.url.endsWith('.mp4')) contentType = 'video/mp4';
-            else if (req.url.endsWith('.webm')) contentType = req.url.includes('audio') ? 'audio/webm' : 'video/webm';
+            const ext = path.extname(req.url).toLowerCase();
+            if (ext === '.mp4') contentType = 'video/mp4';
+            else if (ext === '.webm') contentType = req.url.includes('audio') ? 'audio/webm' : 'video/webm';
+            else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+            else if (ext === '.png') contentType = 'image/png';
+            else if (ext === '.gif') contentType = 'image/gif';
+            else if (ext === '.pdf') contentType = 'application/pdf';
             
             res.writeHead(200, { 
                 'Content-Type': contentType, 
