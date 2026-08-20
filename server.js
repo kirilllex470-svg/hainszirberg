@@ -67,76 +67,32 @@ const server = http.createServer((req, res) => {
         return;
     }
     // 2. Получение списка чатов (Личные + Конференции) со счётчиками
-    if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
-        const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-        const user = myUrl.searchParams.get('user');
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
-        
-        if (user) {
-            const myLowerName = user.toLowerCase();
-            const myFriends = friendsDB[myLowerName] || [];
-            const myReads = db.lastRead[myLowerName] || {};
-            
-            const listData = myFriends.map(friendName => {
-                const friendLower = friendName.toLowerCase();
-                const sortedRoom = [myLowerName, friendLower].sort();
-                const roomId = `${sortedRoom}_${sortedRoom}`;
-                const roomMessages = roomsDB[roomId] || [];
-                
-                let lastMsgText = "Нет сообщений";
-                let lastMsgTime = "";
-                let unreadCount = 0;
-                const myLastReadTime = myReads[roomId] || 0;
-                
-                if (roomMessages.length > 0) {
-                    const lastMsg = roomMessages[roomMessages.length - 1];
-                    if (lastMsg.type === 'audio') lastMsgText = "🎙️ Голосовое сообщение";
-                    else if (lastMsg.type === 'video') lastMsgText = "🎥 Видео-кружок";
-                    else if (lastMsg.type === 'file') lastMsgText = "📎 Файл / Документ";
-                    else lastMsgText = lastMsg.text;
-                    lastMsgTime = lastMsg.time || "";
-                    
-                    roomMessages.forEach(msg => {
-                        if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) {
-                            unreadCount++;
-                        }
-                    });
-                }
-                return { name: friendName, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: false };
-            });
+    // 4.9 Полное удаление групповой конференции
+    if (req.url === '/api/groups/delete' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            try {
+                const { groupId } = JSON.parse(body);
+                if (groupId && groupsDB[groupId]) {
+                    // 1. Удаляем саму группу из базы групп
+                    delete groupsDB[groupId];
+                    writeJSON(GROUPS_FILE, groupsDB);
 
-            Object.keys(groupsDB).forEach(groupId => {
-                const group = groupsDB[groupId];
-                const isParticipant = group.members.some(m => m.toLowerCase() === myLowerName);
-                
-                if (isParticipant) {
-                    const roomMessages = roomsDB[groupId] || [];
-                    let lastMsgText = "Нет сообщений";
-                    let lastMsgTime = "";
-                    let unreadCount = 0;
-                    const myLastReadTime = myReads[groupId] || 0;
-
-                    if (roomMessages.length > 0) {
-                        const lastMsg = roomMessages[roomMessages.length - 1];
-                        if (lastMsg.type === 'audio') lastMsgText = `🎙️ ${lastMsg.sender}: Голосовое`;
-                        else if (lastMsg.type === 'video') lastMsgText = `🎥 ${lastMsg.sender}: Кружок`;
-                        else if (lastMsg.type === 'file') lastMsgText = `📎 ${lastMsg.sender}: Файл`;
-                        else lastMsgText = `${lastMsg.sender}: ${lastMsg.text}`;
-                        lastMsgTime = lastMsg.time || "";
-
-                        roomMessages.forEach(msg => {
-                            if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) {
-                                unreadCount++;
-                            }
-                        });
+                    // 2. Очищаем историю сообщений этой группы, чтобы не занимать место
+                    if (roomsDB[groupId]) {
+                        delete roomsDB[groupId];
+                        writeJSON(HISTORY_FILE, roomsDB);
                     }
-                    listData.push({ id: groupId, name: group.name, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: true });
+
+                    res.writeHead(200); return res.end('OK');
                 }
-            });
-            return res.end(JSON.stringify(listData));
-        }
-        return res.end(JSON.stringify([]));
+                res.writeHead(400); res.end('Bad Request');
+            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
+        });
+        return;
     }
+
 
     // 3. Сохранение списка друзей
     if (req.url === '/api/friends/save' && req.method === 'POST') {
