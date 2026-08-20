@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const USERS_FILE = path.join(__dirname, 'users.json');
 const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
-const GROUPS_FILE = path.join(__dirname, 'groups.json'); // База групп
+const GROUPS_FILE = path.join(__dirname, 'groups.json');
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -32,7 +32,7 @@ let friendsDB = readJSON(FRIENDS_FILE, {});
 let groupsDB = readJSON(GROUPS_FILE, {});
 
 const db = {
-    lastRead: {} // Время последнего открытия чатов для подсчета непрочитанных
+    lastRead: {}
 };
 
 const server = http.createServer((req, res) => {
@@ -66,7 +66,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-    // 2. Получение списка чатов (Личные + Группы) со счётчиками
+    // 2. Получение списка чатов (Личные + Конференции) со счётчиками
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -105,7 +105,6 @@ const server = http.createServer((req, res) => {
                 return { name: friendName, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: false };
             });
 
-            // Подтягиваем группы конференции
             Object.keys(groupsDB).forEach(groupId => {
                 const group = groupsDB[groupId];
                 const isParticipant = group.members.some(m => m.toLowerCase() === myLowerName);
@@ -131,7 +130,6 @@ const server = http.createServer((req, res) => {
                             }
                         });
                     }
-
                     listData.push({ id: groupId, name: group.name, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: true });
                 }
             });
@@ -140,7 +138,7 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 3. Добавление/Сохранение обычного друга
+    // 3. Сохранение списка друзей
     if (req.url === '/api/friends/save' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -156,8 +154,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
-    // 3.5 Создание конференции втроем/впятером
+    // 3.5 Создание конференции
     if (req.url === '/api/groups/create' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -180,7 +177,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4. История сообщений комнаты
+    // 4. История сообщений
     if (req.url.startsWith('/api/messages') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const room = myUrl.searchParams.get('room');
@@ -188,7 +185,8 @@ const server = http.createServer((req, res) => {
         if (room && roomsDB[room]) return res.end(JSON.stringify(roomsDB[room]));
         return res.end(JSON.stringify([]));
     }
-    // 4.5 Фиксация прочтения чата
+
+    // 4.5 Прочтение
     if (req.url === '/api/messages/read' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -206,7 +204,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4.7 Удаление сообщения
+    // 4.7 Удаление
     if (req.url === '/api/messages/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -224,22 +222,19 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. Прием сообщений FormData (Текст, Аудио, Видео, Файлы)
+    // 5. FormData Прием
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
             res.writeHead(400); return res.end('Ожидался FormData');
         }
-
-        const boundary = contentType.split('boundary=');
+        const boundary = contentType.split('boundary=')[1];
         let chunks = [];
-
         req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
             const buffer = Buffer.concat(chunks);
             const bufferStr = buffer.toString('binary');
             const parts = bufferStr.split('--' + boundary);
-
             let fields = {};
             let fileBuffer = null;
             let fileExt = 'bin';
@@ -249,12 +244,11 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const matchName = part.match(/name="([^"]+)"/);
                     if (!matchName) continue;
-                    const name = matchName;
+                    const name = matchName[1];
 
                     if (part.includes('filename="')) {
                         const fileMatch = part.match(/Content-Type:\s*([^\s\r\n]+)/);
-                        const mime = fileMatch ? fileMatch : '';
-                        
+                        const mime = fileMatch ? fileMatch[1] : '';
                         const originalNameMatch = part.match(/filename="([^"]+)"/);
                         if (originalNameMatch) {
                             originalFileName = originalNameMatch[1];
@@ -263,7 +257,6 @@ const server = http.createServer((req, res) => {
                                 fileExt = splitName[splitName.length - 1];
                             }
                         }
-
                         const headerEnd = part.indexOf('\r\n\r\n') + 4;
                         const fileContentBinary = part.substring(headerEnd, part.length - 2);
                         fileBuffer = Buffer.from(fileContentBinary, 'binary');
@@ -278,33 +271,21 @@ const server = http.createServer((req, res) => {
             const { sender, room, type, text } = fields;
             if (sender && room) {
                 let finalContent = text || '';
-
                 if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
                     const fileName = `${type}_${crypto.randomBytes(8).toString('hex')}.${fileExt}`;
                     const filePath = path.join(UPLOADS_DIR, fileName);
                     fs.writeFileSync(filePath, fileBuffer);
-                    
                     if (type === 'file') {
                         finalContent = JSON.stringify({ path: `/uploads/${fileName}`, name: originalFileName });
                     } else {
                         finalContent = `/uploads/${fileName}`;
                     }
                 }
-
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 if (!roomsDB[room]) roomsDB[room] = [];
-                
-                roomsDB[room].push({ 
-                    id: crypto.randomBytes(8).toString('hex'),
-                    sender, 
-                    text: finalContent, 
-                    type: type || 'text', 
-                    time: timeStr,
-                    timestamp: Date.now()
-                });
+                roomsDB[room].push({ id: crypto.randomBytes(8).toString('hex'), sender, text: finalContent, type: type || 'text', time: timeStr, timestamp: Date.now() });
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
-                
                 writeJSON(HISTORY_FILE, roomsDB);
                 res.writeHead(200); return res.end('OK');
             }
@@ -313,12 +294,11 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Раздача сохраненных медиафайлов и документов
+    // 6. Раздача медиа
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); return res.end('File Not Found'); }
-            
             let contentType = 'application/octet-stream';
             const ext = path.extname(req.url).toLowerCase();
             if (ext === '.mp4') contentType = 'video/mp4';
@@ -327,18 +307,13 @@ const server = http.createServer((req, res) => {
             else if (ext === '.png') contentType = 'image/png';
             else if (ext === '.gif') contentType = 'image/gif';
             else if (ext === '.pdf') contentType = 'application/pdf';
-            
-            res.writeHead(200, { 
-                'Content-Type': contentType, 
-                'Cache-Control': 'max-age=86400',
-                'Accept-Ranges': 'bytes'
-            });
+            res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'max-age=86400', 'Accept-Ranges': 'bytes' });
             res.end(data);
         });
         return;
     }
 
-    // 7. Главная страница
+    // 7. Главная
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
