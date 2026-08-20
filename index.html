@@ -22,7 +22,6 @@
         .sidebar-user span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .logout-btn { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; flex-shrink: 0; }
         
-        /* НОВОЕ: Стили контейнера создания групп */
         .search-container { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; background: rgba(15, 23, 42, 0.2); border-bottom: 1px solid rgba(255,255,255,0.02); }
         .search-row { display: flex; gap: 8px; width: 100%; }
         .search-input { flex: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 15px; outline: none; min-width: 0; }
@@ -49,7 +48,6 @@
         .user-info { min-width: 0; margin-left: 12px; }
         .partner-title { color: #f8fafc; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .partner-status { color: #00ca9e; font-size: 12px; }
-        
         #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(10, 15, 30, 0.3); }
         .chat-placeholder { margin: auto; background: rgba(30, 41, 59, 0.8); padding: 16px 24px; border-radius: 16px; color: #94a3b8; font-size: 14px; text-align: center; max-width: 85%; border: 1px solid rgba(255,255,255,0.05); }
         .message-row { display: flex; width: 100%; }
@@ -60,7 +58,6 @@
         .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; }
         .other-msg .bubble { background: #1e293b; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
         
-        /* НОВОЕ: Подпись автора внутри пузыря группы */
         .msg-author { font-size: 12px; font-weight: 600; color: #38bdf8; padding-bottom: 3px; }
         .my-msg .msg-author { color: #a7f3d0; }
         
@@ -77,7 +74,6 @@
         .chat-file-info { display: flex; flex-direction: column; min-width: 0; }
         .chat-file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #00ca9e; }
         .chat-file-action { font-size: 11px; color: #94a3b8; margin-top: 1px; }
-
         .context-menu { position: fixed; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; z-index: 1000; overflow: hidden; padding: 4px 0; min-width: 140px; }
         .context-menu button { background: transparent; border: none; color: #f1f5f9; width: 100%; text-align: left; padding: 10px 16px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .context-menu button:hover { background: rgba(255,255,255,0.05); color: #00ca9e; }
@@ -96,8 +92,10 @@
         .input-container { background: #111827; height: auto; min-height: 116px; display: flex; flex-direction: column; padding: 12px 15px; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
         .tools-row { width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding-left: 2px; }
         .input-row { width: 100%; display: flex; align-items: center; gap: 10px; }
+        
         #text-input { flex: 1; height: 46px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; padding: 0 16px; color: #f8fafc; outline: none; font-size: 16px; min-width: 0; }
         #send-btn { background: #00a884; border: none; color: white; height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; font-size: 14px; }
+
         .media-btn { background: #1f2937; border: 1px solid rgba(255,255,255,0.05); color: #00ca9e; width: 42px; height: 42px; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; flex-shrink: 0; transition: 0.2s; }
         .media-btn.recording { background: #f43f5e; color: white; animation: pulse 1s infinite; border-color: transparent; }
         
@@ -112,7 +110,7 @@
             .bubble { max-width: 85%; }
             .video-round { width: 260px; height: 260px; }
             .audio-player { max-width: 190px; }
-            #text-input, #send-btn { height: 42px; padding: 0 12px; }
+            #text-input, #send-btn { height: 42px; padding: 0 12px; font-size: 16px; }
         }
     </style>
 </head>
@@ -133,7 +131,6 @@
                 <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
             
-            <!-- ИСПРАВЛЕНО: Добавлены поля для поиска контактов и создания конференций -->
             <div class="search-container">
                 <div class="search-row">
                     <input type="text" id="new-friend-name" class="search-input" placeholder="Имя друга...">
@@ -169,7 +166,6 @@
         </div>
     </div>
 
-    <!-- КОНТЕКСТНЫЕ ЭЛЕМЕНТЫ -->
     <div id="msg-context-menu" class="context-menu">
         <button onclick="triggerForwardMessage()">🔄 Переслать</button>
         <button id="menu-delete-btn" class="delete-btn" onclick="triggerDeleteMessage()">🗑️ Удалить</button>
@@ -182,7 +178,6 @@
         </div>
     </div>
 
-    <!-- НОВОЕ: Модалка создания конференции (группового чата) -->
     <div id="group-modal" class="modal-overlay" onclick="closeGroupModal()">
         <div class="modal-box" onclick="event.stopPropagation()">
             <h3>Создать группу <button class="modal-close" onclick="closeGroupModal()">&times;</button></h3>
@@ -196,7 +191,7 @@
     let currentUser = localStorage.getItem('chat_username') || null;
     let currentPartner = null;
     let currentRoomId = null;
-    let isCurrentGroup = false; // НОВОЕ: флаг, открыта ли сейчас группа
+    let isCurrentGroup = false; 
     let friendsList = [];
     let updateInterval = null;
     let lastMessagesCount = 0;
@@ -263,7 +258,6 @@
         if (!name) return;
         if (name.toLowerCase() === currentUser.toLowerCase()) { alert("Нельзя добавить себя!"); return; }
         
-        // Фильтруем только обычных друзей для проверки дубликатов
         const plainFriends = friendsList.filter(f => !f.isGroup);
         if (plainFriends.some(f => f.name.toLowerCase() === name.toLowerCase())) { alert("Этот пользователь уже в списке!"); return; }
         
@@ -280,7 +274,6 @@
         });
     }
 
-    // НОВОЕ: Логика открытия модалки конференции
     function openCreateGroupModal() { document.getElementById('group-modal').style.display = 'flex'; }
     function closeGroupModal() { document.getElementById('group-modal').style.display = 'none'; }
 
@@ -291,8 +284,6 @@
         const gMembersRaw = membersInput.value.trim();
 
         if (!gName || !gMembersRaw) { alert("Заполните поля!"); return; }
-
-        // Превращаем строку "друг1, друг2" в чистый массив имен
         const memberArray = gMembersRaw.split(',').map(m => m.trim()).filter(m => m !== '');
 
         fetch('/api/groups/create', {
@@ -309,15 +300,14 @@
             }
         });
     }
-
-    function deleteFriend(friendObj, event) {
-        event.stopPropagation();
-        if (friendObj.isGroup) { alert("Групповые конференции нельзя удалить из этого списка."); return; }
-        if (!confirm(`Удалить ${friendObj.name} из контактов?`)) return;
+    function deleteFriend(friendName, isGroup, event) {
+        if (event) event.stopPropagation();
+        if (isGroup) { alert("Групповые конференции нельзя удалить из этого списка."); return; }
+        if (!confirm(`Удалить ${friendName} из контактов?`)) return;
         
-        const cleanNames = friendsList.filter(f => !f.isGroup && f.name.toLowerCase() !== friendObj.name.toLowerCase()).map(f => f.name);
+        const cleanNames = friendsList.filter(f => !f.isGroup && f.name.toLowerCase() !== friendName.toLowerCase()).map(f => f.name);
 
-        if (!isCurrentGroup && currentPartner && currentPartner.toLowerCase() === friendObj.name.toLowerCase()) {
+        if (!isCurrentGroup && currentPartner && currentPartner.toLowerCase() === friendName.toLowerCase()) {
             resetChatArea();
         }
 
@@ -342,7 +332,7 @@
     function selectChat(itemObj) {
         if (itemObj.isGroup) {
             currentPartner = itemObj.name;
-            currentRoomId = itemObj.id; // Для групп ID комнаты генерируется сервером
+            currentRoomId = itemObj.id; 
             isCurrentGroup = true;
             document.getElementById('chat-status').textContent = "конференция";
         } else {
@@ -381,13 +371,15 @@
             body: JSON.stringify({ user: currentUser, room: roomId })
         }).then(() => loadFriends());
     }
-function renderFriends() {
+
+    function renderFriends() {
         const box = document.getElementById('friends-box');
         box.innerHTML = '';
         if (friendsList.length === 0) { box.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b; font-size:13px;">Список контактов пуст</div>`; return; }
         
         friendsList.forEach(friend => {
-            const isActive = currentRoomId && currentRoomId === (friend.isGroup ? friend.id : `${[currentUser.toLowerCase(), friend.name.toLowerCase()].sort()}_${[currentUser.toLowerCase(), friend.name.toLowerCase()].sort()}`);
+            let activeId = friend.isGroup ? friend.id : `${[currentUser.toLowerCase(), friend.name.toLowerCase()].sort()}_${[currentUser.toLowerCase(), friend.name.toLowerCase()].sort()}`;
+            const isActive = currentRoomId && currentRoomId === activeId;
             const item = document.createElement('div');
             item.className = `friend-item ${isActive ? 'active' : ''}`;
             item.onclick = () => selectChat(friend);
@@ -395,7 +387,7 @@ function renderFriends() {
             const badgeHTML = (friend.unread > 0 && !isActive) ? `<div class="unread-badge">${friend.unread}</div>` : '';
             const timeHTML = friend.time ? `<div class="friend-time-label">${friend.time}</div>` : '';
             const displayName = friend.isGroup ? `👥 ${friend.name}` : friend.name;
-            const delBtnHTML = friend.isGroup ? '' : `<button class="delete-friend-btn" onclick="deleteFriend(${JSON.stringify(friend).replace(/"/g, '&quot;')}, event)">&times;</button>`;
+            const delBtnHTML = friend.isGroup ? '' : `<button class="delete-friend-btn" onclick="deleteFriend('${friend.name}', false, event)">&times;</button>`;
             
             item.innerHTML = `
                 <div class="friend-info">
@@ -498,7 +490,7 @@ function renderFriends() {
 
     function uploadAnyFile(inputElement) {
         if (!inputElement.files || inputElement.files.length === 0) return;
-        const file = inputElement.files;
+        const file = inputElement.files[0]; 
         const formData = new FormData();
         formData.append('sender', currentUser);
         formData.append('room', currentRoomId);
@@ -513,8 +505,8 @@ function renderFriends() {
         if (!currentUser || !currentRoomId) return;
         try {
             const parts = base64Data.split(';base64,');
-            const contentType = parts.split(':');
-            const raw = window.atob(parts);
+            const contentType = parts[0].split(':')[1];
+            const raw = window.atob(parts[1]);
             const uInt8Array = new Uint8Array(raw.length);
             for (let i = 0; i < raw.length; ++i) { uInt8Array[i] = raw.charCodeAt(i); }
             const blob = new Blob([uInt8Array], { type: contentType });
