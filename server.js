@@ -4,12 +4,15 @@ const path = require('path');
 const crypto = require('crypto');
 const webpush = require('web-push'); // Модуль для работы с Push-уведомлениями
 
-const USERS_FILE = path.join(__dirname, 'users.json');
-const HISTORY_FILE = path.join(__dirname, 'history.json');
-const FRIENDS_FILE = path.join(__dirname, 'friends.json');
-const GROUPS_FILE = path.join(__dirname, 'groups.json');
-const SUBS_FILE = path.join(__dirname, 'subs.json'); // Файл для хранения токенов уведомлений
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+const DATA_DIR = fs.existsSync('/opt/render/project/src/data') ? '/opt/render/project/src/data' : __dirname;
+
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
+const FRIENDS_FILE = path.join(DATA_DIR, 'friends.json');
+const GROUPS_FILE = path.join(DATA_DIR, 'groups.json');
+const SUBS_FILE = path.join(DATA_DIR, 'subs.json');
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads'); // Медиафайлы тоже перестанут удаляться!
+
 
 if (!fs.existsSync(UPLOADS_DIR)) {
     fs.mkdirSync(UPLOADS_DIR);
