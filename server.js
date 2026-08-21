@@ -35,8 +35,41 @@ const db = {
     lastRead: {}
 };
 
+// =========================================================================
+// НАСТРОЙКА TELEGRAM УВЕДОМЛЕНИЙ (Вставь сюда свои данные из Шага 1)
+const TG_BOT_TOKEN = '8835748623:AAG17hX3zKZ0I3-tewDmQqDV4FK2DzZgAhU';
+const TG_USER_ID = '6157805439';
+
+function sendTelegramPush(title, body) {
+    if (!TG_BOT_TOKEN || !TG_USER_ID) return;
+    
+    const messageText = `🔔 *${title}*\n${body}`;
+    const url = `https://telegram.org{TG_BOT_TOKEN}/sendMessage`;
+    
+    const postData = JSON.stringify({
+        chat_id: TG_USER_ID,
+        text: messageText,
+        parse_mode: 'Markdown'
+    });
+
+    const req = http.request(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+        }
+    }, (res) => {
+        res.on('data', () => {}); 
+    });
+
+    req.on('error', (e) => { console.error("Ошибка отправки ТГ пуша:", e); });
+    req.write(postData);
+    req.end();
+}
+// =========================================================================
+
 const server = http.createServer((req, res) => {
-    // 1. Авторизация и регистрация
+    // 1. Авторизация и регистрация аккаунтов
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -178,7 +211,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4. История сообщений комнаты
+    // 4. История сообщений
     if (req.url.startsWith('/api/messages') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const room = myUrl.searchParams.get('room');
@@ -244,7 +277,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. FormData Прием (Стабильный парсер с поддержкой плашки пересылки)
+    // 5. FormData Прием (С интегрированной отправкой уведомлений в Telegram)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -319,6 +352,33 @@ const server = http.createServer((req, res) => {
                 });
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
+
+                // АВТОМАТИЧЕСКИЙ ТРИГГЕР УВЕДОМЛЕНИЯ В TELEGRAM
+                let pushTitle = '';
+                let pushBody = '';
+
+                if (room.startsWith('group_') && groupsDB[room]) {
+                    // Если сообщение отправлено в группу, проверяем, не сам ли получатель пуша его отправил
+                    if (sender.toLowerCase() !== currentUser.toLowerCase()) {
+                        pushTitle = `👥 Группа: ${groupsDB[room].name} (${sender})`;
+                    }
+                } else {
+                    // Если это личный чат и сообщение пришло от собеседника
+                    if (sender.toLowerCase() !== currentUser.toLowerCase()) {
+                        pushTitle = `💬 Сообщение от: ${sender}`;
+                    }
+                }
+
+                if (pushTitle) {
+                    if (type === 'text') pushBody = forwardedFrom ? `[Переслано] ${finalContent}` : finalContent;
+                    else if (type === 'audio') pushBody = '🎙️ Голосовое сообщение';
+                    else if (type === 'video') pushBody = '🎥 Видео-кружок';
+                    else if (type === 'file') {
+                        try { pushBody = `📎 Файл: ${JSON.parse(finalContent).name}`; } catch(e) { pushBody = '📎 Файл / Документ'; }
+                    }
+                    sendTelegramPush(pushTitle, pushBody);
+                }
+
                 res.writeHead(200); return res.end('OK');
             }
             res.writeHead(400); res.end('Incomplete data');
@@ -326,7 +386,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Раздача сохраненных медиафайлов
+    // 6. Раздача медиафайлов
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
