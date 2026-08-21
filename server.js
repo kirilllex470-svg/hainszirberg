@@ -35,39 +35,6 @@ const db = {
     lastRead: {}
 };
 
-// =========================================================================
-// НАСТРОЙКА TELEGRAM УВЕДОМЛЕНИЙ (Вставь свои данные!)
-const TG_BOT_TOKEN = '8835748623:AAG17hX3zKZ0I3-tewDmQqDV4FK2DzZgAhU';
-const TG_USER_ID = '6157805439';
-
-function sendTelegramPush(title, body) {
-    if (!TG_BOT_TOKEN || !TG_USER_ID) return;
-    
-    const messageText = `🔔 *${title}*\n${body}`;
-    const url = `https://telegram.org{TG_BOT_TOKEN}/sendMessage`;
-    
-    const postData = JSON.stringify({
-        chat_id: TG_USER_ID,
-        text: messageText,
-        parse_mode: 'Markdown'
-    });
-
-    const req = http.request(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(postData)
-        }
-    }, (res) => {
-        res.on('data', () => {}); 
-    });
-
-    req.on('error', (e) => { console.error("Ошибка отправки ТГ пуша:", e); });
-    req.write(postData);
-    req.end();
-}
-// =========================================================================
-
 const server = http.createServer((req, res) => {
     // 1. Авторизация и регистрация
     if (req.url === '/api/auth' && req.method === 'POST') {
@@ -210,7 +177,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     // 4. История сообщений
     if (req.url.startsWith('/api/messages') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -219,7 +185,8 @@ const server = http.createServer((req, res) => {
         if (room && roomsDB[room]) return res.end(JSON.stringify(roomsDB[room]));
         return res.end(JSON.stringify([]));
     }
-    // 4.5 Фиксация прочтения чата
+
+    // 4.5 Прочтение
     if (req.url === '/api/messages/read' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -255,7 +222,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4.9 Полное удаление групповой конференции
+    // 4.9 Удаление групповой конференции
     if (req.url === '/api/groups/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -277,7 +244,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. FormData Прием (ИСПРАВЛЕНО: Индексы массивов совпадений)
+    // 5. FormData Прием (ИСПРАВЛЕНО split boundary)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -327,7 +294,7 @@ const server = http.createServer((req, res) => {
                 }
             }
 
-            const { sender, room, type, text, forwardedFrom } = fields;
+            const { sender, room, type, text } = fields;
             if (sender && room) {
                 let finalContent = text || '';
                 if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
@@ -343,37 +310,9 @@ const server = http.createServer((req, res) => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 if (!roomsDB[room]) roomsDB[room] = [];
-                roomsDB[room].push({ 
-                    id: crypto.randomBytes(8).toString('hex'), 
-                    sender, 
-                    text: finalContent, 
-                    type: type || 'text', 
-                    time: timeStr, 
-                    timestamp: Date.now(),
-                    forwardedFrom: forwardedFrom || null
-                });
+                roomsDB[room].push({ id: crypto.randomBytes(8).toString('hex'), sender, text: finalContent, type: type || 'text', time: timeStr, timestamp: Date.now() });
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
-
-                // Стабильный триггер Telegram Пушей
-                let pushTitle = '';
-                let pushBody = '';
-
-                if (room.startsWith('group_') && groupsDB[room]) {
-                    pushTitle = `👥 Группа: ${groupsDB[room].name} (От: ${sender})`;
-                } else {
-                    pushTitle = `💬 Чат: ${sender}`;
-                }
-
-                if (type === 'text') pushBody = forwardedFrom ? `[Переслано] ${finalContent}` : finalContent;
-                else if (type === 'audio') pushBody = '🎙️ Голосовое сообщение';
-                else if (type === 'video') pushBody = '🎥 Видео-кружок';
-                else if (type === 'file') {
-                    try { pushBody = `📎 Файл: ${JSON.parse(finalContent).name}`; } catch(e) { pushBody = '📎 Файл'; }
-                }
-
-                sendTelegramPush(pushTitle, pushBody);
-
                 res.writeHead(200); return res.end('OK');
             }
             res.writeHead(400); res.end('Incomplete data');
@@ -381,7 +320,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Раздача сохраненных медиафайлов
+    // 6. Раздача сохраненных медиа
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
