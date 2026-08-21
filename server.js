@@ -36,7 +36,7 @@ const db = {
 };
 
 // =========================================================================
-// НАСТРОЙКА TELEGRAM УВЕДОМЛЕНИЙ (Вставь сюда свои данные из Шага 1)
+// НАСТРОЙКА TELEGRAM УВЕДОМЛЕНИЙ (Вставь свои данные!)
 const TG_BOT_TOKEN = '8835748623:AAG17hX3zKZ0I3-tewDmQqDV4FK2DzZgAhU';
 const TG_USER_ID = '6157805439';
 
@@ -69,7 +69,7 @@ function sendTelegramPush(title, body) {
 // =========================================================================
 
 const server = http.createServer((req, res) => {
-    // 1. Авторизация и регистрация аккаунтов
+    // 1. Авторизация и регистрация
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -238,25 +238,6 @@ const server = http.createServer((req, res) => {
     }
 
     // 4.7 Удаление сообщения
-       // 4.5 Фиксация прочтения чата
-    if (req.url === '/api/messages/read' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => body += chunk.toString());
-        req.on('end', () => {
-            try {
-                const { user, room } = JSON.parse(body);
-                if (user && room) {
-                    const uLower = user.toLowerCase();
-                    if (!db.lastRead[uLower]) db.lastRead[uLower] = {};
-                    db.lastRead[uLower][room] = Date.now();
-                }
-                res.writeHead(200); return res.end('OK');
-            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
-        });
-        return;
-    }
-
-    // 4.7 Удаление сообщения
     if (req.url === '/api/messages/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -296,7 +277,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. FormData Прием (БЕЗ ОШИБКИ С CURRENTUSER)
+    // 5. FormData Прием (ИСПРАВЛЕНО: Индексы массивов совпадений)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -325,6 +306,8 @@ const server = http.createServer((req, res) => {
                     const name = matchName[1];
 
                     if (part.includes('filename="')) {
+                        const fileMatch = part.match(/Content-Type:\s*([^\s\r\n]+)/);
+                        const mime = fileMatch ? fileMatch[1] : '';
                         const originalNameMatch = part.match(/filename="([^"]+)"/);
                         if (originalNameMatch) {
                             originalFileName = originalNameMatch[1];
@@ -372,7 +355,7 @@ const server = http.createServer((req, res) => {
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
 
-                // ИСПРАВЛЕННАЯ ОТПРАВКА В TELEGRAM (Без ломающихся переменных)
+                // Стабильный триггер Telegram Пушей
                 let pushTitle = '';
                 let pushBody = '';
 
@@ -382,14 +365,13 @@ const server = http.createServer((req, res) => {
                     pushTitle = `💬 Чат: ${sender}`;
                 }
 
-                if (type === 'text') pushBody = forwardedFrom ? `[Переслано от ${forwardedFrom}] ${finalContent}` : finalContent;
+                if (type === 'text') pushBody = forwardedFrom ? `[Переслано] ${finalContent}` : finalContent;
                 else if (type === 'audio') pushBody = '🎙️ Голосовое сообщение';
                 else if (type === 'video') pushBody = '🎥 Видео-кружок';
                 else if (type === 'file') {
                     try { pushBody = `📎 Файл: ${JSON.parse(finalContent).name}`; } catch(e) { pushBody = '📎 Файл'; }
                 }
 
-                // Отправляем пуш (Оно само уйдет тому, чей токен указан на Шаге 1)
                 sendTelegramPush(pushTitle, pushBody);
 
                 res.writeHead(200); return res.end('OK');
