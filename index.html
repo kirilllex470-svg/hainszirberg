@@ -618,11 +618,16 @@
     function fetchMessages() {
         if (!currentUser || !currentRoomId) return;
         fetch(`/api/messages?room=${currentRoomId}`).then(res => res.json()).then(data => {
+            // Если количество сообщений не изменилось — ничего не перерисовываем
             if (data.length === lastMessagesCount) return; 
             lastMessagesCount = data.length;
-            let isScrolledDown = messagesDiv.scrollHeight - messagesDiv.clientHeight <= messagesDiv.scrollTop + 50;
+
             messagesDiv.innerHTML = '';
-            if(data.length === 0) { messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; return; }
+            if(data.length === 0) { 
+                messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; 
+                return; 
+            }
+
             data.forEach(msg => {
                 const row = document.createElement('div');
                 const isMy = msg.sender.toLowerCase() === currentUser.toLowerCase();
@@ -645,7 +650,6 @@
                 const bubble = document.createElement('div');
                 bubble.className = 'bubble';
                 
-                // Рендерим плашку пересылки, если поле существует
                 const forwardHTML = msg.forwardedFrom ? `<div class="msg-forwarded-label">↪ Переслано от: ${msg.forwardedFrom}</div>` : '';
                 const authorHTML = (isCurrentGroup && !isMy) ? `<div class="msg-author">${msg.sender}</div>` : '';
                 
@@ -655,12 +659,18 @@
                 row.appendChild(bubble);
                 messagesDiv.appendChild(row);
             });
-            if (isScrolledDown) { messagesDiv.scrollTop = messagesDiv.scrollHeight; }
+
+            // ИСПРАВЛЕНО: Принудительный и гарантированный скролл в самый низ при появлении нового сообщения
+            setTimeout(() => {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, 50);
+
             if (data.length > 0 && currentPartner) {
                 fetch('/api/messages/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: currentUser, room: currentRoomId }) });
             }
         }).catch(err => console.log("Сбой обновления"));
     }
+
 
     function playVideoWithSound(videoElement) {
         if (window.event) window.event.stopPropagation();
