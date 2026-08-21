@@ -39,8 +39,8 @@ const db = {
 };
 
 // НАСТРОЙКА КЛЮЧЕЙ УВЕДОМЛЕНИЙ (Вставь сюда свои строки, сгенерированные в консоли!)
-const PUBLIC_KEY = 'ВСТАВЬ_СЮДА_PUBLIC_KEY';
-const PRIVATE_KEY = 'ВСТАВЬ_СЮДА_PRIVATE_KEY';
+const PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BKlrCzaNXdDA-sFSSjuALLn1wh8ohVIcIEKSv2nI_C2ZK-2eU--neC0NzuFVnPCF8tuVVrhWyfCFWdtYuJ-hXLs';
+const PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'nZ3phzDA6Q37CEYYVdMdiTYp5dTUcLPb47rVv60CRII';
 
 webpush.setVapidDetails('mailto:admin@chat.neo', PUBLIC_KEY, PRIVATE_KEY);
 
