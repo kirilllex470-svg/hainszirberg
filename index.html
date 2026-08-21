@@ -246,6 +246,11 @@
             }, 1500); 
         }
         loadFriends();
+
+        // ДОБАВЬТЕ ЭТУ СТРОЧКУ СЮДА:
+        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
     }
 
     function loadFriends() {
@@ -615,42 +620,61 @@
         }
     }
 
-    function fetchMessages() {
+       function fetchMessages() {
         if (!currentUser || !currentRoomId) return;
         fetch(`/api/messages?room=${currentRoomId}`).then(res => res.json()).then(data => {
             // Если количество сообщений не изменилось — ничего не делаем
             if (data.length === lastMessagesCount) return; 
             
-            // ХИТРОСТЬ: Если это НЕ первая загрузка чата (lastMessagesCount > 0) 
-            // и сообщений стало БОЛЬШЕ — значит, прилетело новое сообщение!
+            // Проверяем, прилетело ли РЕАЛЬНО новое сообщение (а не просто первая загрузка)
             if (lastMessagesCount > 0 && data.length > lastMessagesCount) {
-                // 1. Включаем стандартный системный звук уведомления браузера
-                try {
-                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioCtx.createOscillator();
-                    const gainNode = audioCtx.createGain();
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioCtx.destination);
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Нота Ре (приятный дзинь)
-                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    oscillator.start();
-                    oscillator.stop(audioCtx.currentTime + 0.15);
-                } catch (e) { console.log("Звук заблокирован политикой браузера"); }
+                const lastMsg = data[data.length - 1];
+                
+                // Если это сообщение отправили ВЫ сами — уведомление не нужно
+                if (lastMsg.sender.toLowerCase() !== currentUser.toLowerCase()) {
+                    
+                    // 1. Формируем текст для всплывающего окна в зависимости от типа медиа
+                    let notifyBody = lastMsg.text;
+                    if (lastMsg.type === 'audio') notifyBody = "🎙️ Голосовое сообщение";
+                    if (lastMsg.type === 'video') notifyBody = "🎥 Видео-кружок";
+                    if (lastMsg.type === 'file') {
+                        try { notifyBody = `📎 Файл: ${JSON.parse(lastMsg.text).name}`; } catch(e) { notifyBody = "📎 Файл"; }
+                    }
 
-                // 2. Заставляем вкладку мигать, если пользователь свернул чат
-                let isBlinking = false;
-                const oldTitle = document.title;
-                const blinkInterval = setInterval(() => {
-                    document.title = isBlinking ? oldTitle : "✉️ Новое сообщение!";
-                    isBlinking = !isBlinking;
-                }, 800);
+                    // 2. Проверяем, свернул ли пользователь вкладку или сидит на другом сайте
+                    if (document.hidden) {
+                        // Запрашиваем разрешение (если еще не разрешено) и показываем пуш прямо на экране системы
+                        if (Notification.permission === "granted") {
+                            new Notification(`WhatsApp Premium: ${lastMsg.sender}`, {
+                                body: notifyBody,
+                                tag: currentRoomId // Чтобы уведомления не плодились, а заменяли друг друга
+                            });
+                        } else if (Notification.permission !== "denied") {
+                            Notification.requestPermission().then(permission => {
+                                if (permission === "granted") {
+                                    new Notification(`WhatsApp Premium: ${lastMsg.sender}`, { body: notifyBody });
+                                }
+                            });
+                        }
+                    }
 
-                // Останавливаем мигание через 5 секунд или когда пользователь кликнет по экрану
-                setTimeout(() => { clearInterval(blinkInterval); document.title = oldTitle; }, 5000);
-                window.addEventListener('focus', () => { clearInterval(blinkInterval); document.title = oldTitle; }, { once: true });
+                    // 3. Дополнительно включаем приятный звук ("дзинь")
+                    try {
+                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        const oscillator = audioCtx.createOscillator();
+                        const gainNode = audioCtx.createGain();
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioCtx.destination);
+                        oscillator.type = 'sine';
+                        oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Приятная нота
+                        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                        oscillator.start();
+                        oscillator.stop(audioCtx.currentTime + 0.15);
+                    } catch (e) {}
+                }
             }
 
+            // Рендеринг пузырей на экране (остается без изменений)
             lastMessagesCount = data.length;
             messagesDiv.innerHTML = '';
             if(data.length === 0) { messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; return; }
@@ -687,7 +711,6 @@
                 messagesDiv.appendChild(row);
             });
 
-            // Принудительный скролл вниз
             setTimeout(() => { messagesDiv.scrollTop = messagesDiv.scrollHeight; }, 50);
 
             if (data.length > 0 && currentPartner) {
