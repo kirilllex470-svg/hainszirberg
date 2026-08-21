@@ -244,7 +244,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. FormData Прием (ИСПРАВЛЕНО split boundary)
+    // 5. FormData Прием (С ПОДДЕРЖКОЙ ПЕРЕСЫЛКИ)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -273,8 +273,6 @@ const server = http.createServer((req, res) => {
                     const name = matchName[1];
 
                     if (part.includes('filename="')) {
-                        const fileMatch = part.match(/Content-Type:\s*([^\s\r\n]+)/);
-                        const mime = fileMatch ? fileMatch[1] : '';
                         const originalNameMatch = part.match(/filename="([^"]+)"/);
                         if (originalNameMatch) {
                             originalFileName = originalNameMatch[1];
@@ -294,7 +292,7 @@ const server = http.createServer((req, res) => {
                 }
             }
 
-            const { sender, room, type, text } = fields;
+            const { sender, room, type, text, forwardedFrom } = fields;
             if (sender && room) {
                 let finalContent = text || '';
                 if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
@@ -310,7 +308,15 @@ const server = http.createServer((req, res) => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 if (!roomsDB[room]) roomsDB[room] = [];
-                roomsDB[room].push({ id: crypto.randomBytes(8).toString('hex'), sender, text: finalContent, type: type || 'text', time: timeStr, timestamp: Date.now() });
+                roomsDB[room].push({ 
+                    id: crypto.randomBytes(8).toString('hex'), 
+                    sender, 
+                    text: finalContent, 
+                    type: type || 'text', 
+                    time: timeStr, 
+                    timestamp: Date.now(),
+                    forwardedFrom: forwardedFrom || null // Сохраняем автора пересылки
+                });
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
                 res.writeHead(200); return res.end('OK');
@@ -320,7 +326,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Раздача сохраненных медиа
+    // 6. Раздача медиа
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
