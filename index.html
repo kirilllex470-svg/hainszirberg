@@ -618,16 +618,43 @@
     function fetchMessages() {
         if (!currentUser || !currentRoomId) return;
         fetch(`/api/messages?room=${currentRoomId}`).then(res => res.json()).then(data => {
-            // Если количество сообщений не изменилось — ничего не перерисовываем
+            // Если количество сообщений не изменилось — ничего не делаем
             if (data.length === lastMessagesCount) return; 
-            lastMessagesCount = data.length;
+            
+            // ХИТРОСТЬ: Если это НЕ первая загрузка чата (lastMessagesCount > 0) 
+            // и сообщений стало БОЛЬШЕ — значит, прилетело новое сообщение!
+            if (lastMessagesCount > 0 && data.length > lastMessagesCount) {
+                // 1. Включаем стандартный системный звук уведомления браузера
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime); // Нота Ре (приятный дзинь)
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.15);
+                } catch (e) { console.log("Звук заблокирован политикой браузера"); }
 
-            messagesDiv.innerHTML = '';
-            if(data.length === 0) { 
-                messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; 
-                return; 
+                // 2. Заставляем вкладку мигать, если пользователь свернул чат
+                let isBlinking = false;
+                const oldTitle = document.title;
+                const blinkInterval = setInterval(() => {
+                    document.title = isBlinking ? oldTitle : "✉️ Новое сообщение!";
+                    isBlinking = !isBlinking;
+                }, 800);
+
+                // Останавливаем мигание через 5 секунд или когда пользователь кликнет по экрану
+                setTimeout(() => { clearInterval(blinkInterval); document.title = oldTitle; }, 5000);
+                window.addEventListener('focus', () => { clearInterval(blinkInterval); document.title = oldTitle; }, { once: true });
             }
 
+            lastMessagesCount = data.length;
+            messagesDiv.innerHTML = '';
+            if(data.length === 0) { messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; return; }
+            
             data.forEach(msg => {
                 const row = document.createElement('div');
                 const isMy = msg.sender.toLowerCase() === currentUser.toLowerCase();
@@ -660,10 +687,8 @@
                 messagesDiv.appendChild(row);
             });
 
-            // ИСПРАВЛЕНО: Принудительный и гарантированный скролл в самый низ при появлении нового сообщения
-            setTimeout(() => {
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            }, 50);
+            // Принудительный скролл вниз
+            setTimeout(() => { messagesDiv.scrollTop = messagesDiv.scrollHeight; }, 50);
 
             if (data.length > 0 && currentPartner) {
                 fetch('/api/messages/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: currentUser, room: currentRoomId }) });
