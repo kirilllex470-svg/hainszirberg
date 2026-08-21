@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const webpush = require('web-push'); // Модуль для работы с Push-уведомлениями
 
-const DATA_DIR = fs.existsSync('/opt/render/project/src/data') ? '/opt/render/project/src/data' : __dirname;
+
 
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
