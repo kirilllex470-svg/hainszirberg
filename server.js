@@ -238,6 +238,25 @@ const server = http.createServer((req, res) => {
     }
 
     // 4.7 Удаление сообщения
+       // 4.5 Фиксация прочтения чата
+    if (req.url === '/api/messages/read' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            try {
+                const { user, room } = JSON.parse(body);
+                if (user && room) {
+                    const uLower = user.toLowerCase();
+                    if (!db.lastRead[uLower]) db.lastRead[uLower] = {};
+                    db.lastRead[uLower][room] = Date.now();
+                }
+                res.writeHead(200); return res.end('OK');
+            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
+        });
+        return;
+    }
+
+    // 4.7 Удаление сообщения
     if (req.url === '/api/messages/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -277,7 +296,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. FormData Прием (С интегрированной отправкой уведомлений в Telegram)
+    // 5. FormData Прием (БЕЗ ОШИБКИ С CURRENTUSER)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -353,31 +372,25 @@ const server = http.createServer((req, res) => {
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
 
-                // АВТОМАТИЧЕСКИЙ ТРИГГЕР УВЕДОМЛЕНИЯ В TELEGRAM
+                // ИСПРАВЛЕННАЯ ОТПРАВКА В TELEGRAM (Без ломающихся переменных)
                 let pushTitle = '';
                 let pushBody = '';
 
                 if (room.startsWith('group_') && groupsDB[room]) {
-                    // Если сообщение отправлено в группу, проверяем, не сам ли получатель пуша его отправил
-                    if (sender.toLowerCase() !== currentUser.toLowerCase()) {
-                        pushTitle = `👥 Группа: ${groupsDB[room].name} (${sender})`;
-                    }
+                    pushTitle = `👥 Группа: ${groupsDB[room].name} (От: ${sender})`;
                 } else {
-                    // Если это личный чат и сообщение пришло от собеседника
-                    if (sender.toLowerCase() !== currentUser.toLowerCase()) {
-                        pushTitle = `💬 Сообщение от: ${sender}`;
-                    }
+                    pushTitle = `💬 Чат: ${sender}`;
                 }
 
-                if (pushTitle) {
-                    if (type === 'text') pushBody = forwardedFrom ? `[Переслано] ${finalContent}` : finalContent;
-                    else if (type === 'audio') pushBody = '🎙️ Голосовое сообщение';
-                    else if (type === 'video') pushBody = '🎥 Видео-кружок';
-                    else if (type === 'file') {
-                        try { pushBody = `📎 Файл: ${JSON.parse(finalContent).name}`; } catch(e) { pushBody = '📎 Файл / Документ'; }
-                    }
-                    sendTelegramPush(pushTitle, pushBody);
+                if (type === 'text') pushBody = forwardedFrom ? `[Переслано от ${forwardedFrom}] ${finalContent}` : finalContent;
+                else if (type === 'audio') pushBody = '🎙️ Голосовое сообщение';
+                else if (type === 'video') pushBody = '🎥 Видео-кружок';
+                else if (type === 'file') {
+                    try { pushBody = `📎 Файл: ${JSON.parse(finalContent).name}`; } catch(e) { pushBody = '📎 Файл'; }
                 }
+
+                // Отправляем пуш (Оно само уйдет тому, чей токен указан на Шаге 1)
+                sendTelegramPush(pushTitle, pushBody);
 
                 res.writeHead(200); return res.end('OK');
             }
@@ -386,7 +399,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Раздача медиафайлов
+    // 6. Раздача сохраненных медиафайлов
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
