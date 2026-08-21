@@ -234,7 +234,6 @@
         .catch(() => { errorDiv.textContent = "Ошибка сервера"; errorDiv.style.display = "block"; });
     }
 
-       // НАЙДИ ЭТУ ФУНКЦИЮ В СВОЕМ index.html И ДОБАВЬ СТРОЧКУ В КОНЕЦ:
     function showChat() {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'flex';
@@ -247,41 +246,6 @@
             }, 1500); 
         }
         loadFriends();
-
-        // ВСТАВЬ ЭТУ СТРОЧКУ: Она запрашивает права на уведомления сразу после входа в чат
-        initPushNotifications();
-    }
-
-    // А ЭТУ НОВУЮ ФУНКЦИЮ ДОБАВЬ ЧУТЬ НИЖЕ В КОД СКРИПТОВ:
-    function initPushNotifications() {
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-            navigator.serviceWorker.register('/sw.js')
-            .then(function(reg) {
-                console.log('Service Worker успешно зарегистрирован');
-                
-                // Запрашиваем разрешение у пользователя на показ пушей
-                return Notification.requestPermission().then(function(permission) {
-                    if (permission === 'granted') {
-                        // Вставь сюда СВОЙ Public Key, который ты сгенерировал в терминале Render на Шаге 1!
-                        const applicationServerKey = 'BB_-aC9k2LauwqLmynq4_r0FoiUCRl-hM4Sq0JwmAMNQn0-purqktV3i7oLbMa66bPYN9KW_eaLWxmGNR7r9R1s';
-                        
-                        return reg.pushManager.subscribe({
-                            userVisibleOnly: true,
-                            applicationServerKey: applicationServerKey
-                        }).then(function(subscription) {
-                            // Отправляем уникальный токен телефона на наш сервер
-                            fetch('/api/push/subscribe', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ user: currentUser, subscription: subscription })
-                            });
-                        });
-                    }
-                });
-            }).catch(function(err) {
-                console.error('Ошибка настройки Push-уведомлений:', err);
-            });
-        }
     }
 
     function loadFriends() {
