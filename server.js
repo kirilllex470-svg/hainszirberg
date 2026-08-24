@@ -30,6 +30,7 @@ let groupsDB = readJSON(GROUPS_FILE, {});
 let requestsDB = readJSON(REQUESTS_FILE, {});
 
 const db = { lastRead: {} };
+
 const server = http.createServer((req, res) => {
     // 1. Авторизация и регистрация
     if (req.url === '/api/auth' && req.method === 'POST') {
@@ -61,7 +62,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     // 2. Получение списка чатов со счетчиками непрочитанных
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -135,6 +135,7 @@ const server = http.createServer((req, res) => {
         }
         return res.end(JSON.stringify([]));
     }
+
     // 3. Отправка запроса в друзья
     if (req.url === '/api/friends/request/send' && req.method === 'POST') {
         let body = '';
@@ -310,7 +311,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. FormData Прием (СТРОГИЙ ИСПРАВЛЕННЫЙ ПАРСЕР ТЕКСТА И МЕДИА)
+    // 5. FormData Прием (ФИКСИРОВАННЫЙ СТРОКОВЫЙ ПАРСЕР ТЕКСТА И МЕДИА)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -336,12 +337,12 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const nameMatch = part.match(/name="([^"]+)"/);
                     if (!nameMatch) continue;
-                    const name = nameMatch[1]; // ФИКС: Берем строго строковое значение из первой группы совпадений
+                    const name = nameMatch[1]; // ФИКС: извлекаем строго строку
 
                     if (part.includes('filename="')) {
                         const filenameMatch = part.match(/filename="([^"]+)"/);
                         if (filenameMatch) {
-                            originalFileName = filenameMatch[1]; // ФИКС: Извлекаем строго строку
+                            originalFileName = filenameMatch[1]; // ФИКС: извлекаем строго строку
                             if (originalFileName.includes('.')) {
                                 const splitName = originalFileName.split('.');
                                 fileExt = splitName[splitName.length - 1];
@@ -357,6 +358,7 @@ const server = http.createServer((req, res) => {
                     }
                 }
             }
+
             const { sender, room, type, text, forwardedFrom } = fields;
             if (sender && room) {
                 let finalContent = text || '';
