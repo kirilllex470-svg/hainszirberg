@@ -122,6 +122,24 @@
             .audio-player { max-width: 190px; }
             #text-input, #send-btn { height: 42px; padding: 0 12px; font-size: 16px; }
         }
+                /* Фикс: Делаем обычный текст сообщения видимым */
+        .msg-text {
+            color: #f8fafc !important;
+            font-size: 15px;
+            line-height: 1.4;
+            display: block;
+            padding: 2px 0;
+        }
+        
+        /* Фикс: Оформление и выравнивание времени внутри пузыря */
+        .msg-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: right;
+            margin-top: 4px;
+            width: 100%;
+        }
+
     </style>
 </head>
 <body>
