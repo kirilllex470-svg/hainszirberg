@@ -14,13 +14,13 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
 
 function readJSON(filePath, defaultVal = {}) {
     try { if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8')); } 
-    catch (e) { console.error("Ошибка чтения JSON:", e); }
+    catch (e) { return defaultVal; }
     return defaultVal;
 }
 
 function writeJSON(filePath, data) {
     try { fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8'); } 
-    catch (e) { console.error("Ошибка записи JSON:", e); }
+    catch (e) { console.error("Ошибка записи:", e); }
 }
 
 let usersDB = readJSON(USERS_FILE, {});
@@ -32,7 +32,7 @@ let requestsDB = readJSON(REQUESTS_FILE, {});
 const db = { lastRead: {} };
 
 const server = http.createServer((req, res) => {
-    // 1. Авторизация и регистрация
+    // 1. Авторизация и регистрация пользователей
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -41,7 +41,7 @@ const server = http.createServer((req, res) => {
                 const { username, password } = JSON.parse(body);
                 if (!username || !password) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });
-                    return res.end(JSON.stringify({ success: false, message: "Пустые поля!" }));
+                    return res.end(JSON.stringify({ success: false, message: "Заполните поля" }));
                 }
                 const userKey = username.toLowerCase();
                 if (usersDB[userKey]) {
@@ -50,7 +50,7 @@ const server = http.createServer((req, res) => {
                         return res.end(JSON.stringify({ success: true }));
                     } else {
                         res.writeHead(200, { 'Content-Type': 'application/json' });
-                        return res.end(JSON.stringify({ success: false, message: "Неверный пароль!" }));
+                        return res.end(JSON.stringify({ success: false, message: "Неверный пароль" }));
                     }
                 } else {
                     usersDB[userKey] = { username, password };
@@ -62,7 +62,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-    // 2. Получение списка чатов со счетчиками непрочитанных
+    // 2. Получение контактов + СЧЁТЧИК НЕПРОЧИТАННЫХ (Исправлен расчёт по меткам времени)
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -135,7 +135,6 @@ const server = http.createServer((req, res) => {
         }
         return res.end(JSON.stringify([]));
     }
-
     // 3. Отправка запроса в друзья
     if (req.url === '/api/friends/request/send' && req.method === 'POST') {
         let body = '';
@@ -246,6 +245,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
     // 4.7 Удаление сообщения
     if (req.url === '/api/messages/delete' && req.method === 'POST') {
         let body = '';
@@ -310,20 +310,19 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
-     // 5. FormData Прием — Использование профессионального formidable вместо сломанных регулярных выражений
+    // 5. FormData Прием — Использование надежной библиотеки formidable вместо регулярных выражений
     if (req.url === '/api/send' && req.method === 'POST') {
         const formidable = require('formidable');
         const form = new formidable.IncomingForm({
             uploadDir: UPLOADS_DIR,
             keepExtensions: true,
-            maxFileSize: 50 * 1024 * 1024 // лимит 50 мегабайт на кружки/файлы
+            maxFileSize: 50 * 1024 * 1024 // 50 МБ лимит на кружки/аудио/файлы
         });
 
         form.parse(req, (err, fields, files) => {
             if (err) { res.writeHead(500); return res.end('Ошибка разбора данных'); }
 
-            // Извлекаем поля (formidable гарантирует перевод в чистые строки)
+            // Безопасное извлечение строковых значений из полей formidable
             const sender = Array.isArray(fields.sender) ? fields.sender[0] : fields.sender;
             const room = Array.isArray(fields.room) ? fields.room[0] : fields.room;
             const type = Array.isArray(fields.type) ? fields.type[0] : fields.type;
@@ -333,7 +332,7 @@ const server = http.createServer((req, res) => {
             if (sender && room) {
                 let finalContent = text || '';
 
-                // Если прилетел файл/голосовое/кружок
+                // Обработка прикрепленных файлов/голосовых/кружков
                 if (files.media) {
                     const fileObj = Array.isArray(files.media) ? files.media[0] : files.media;
                     const fileName = `${type || 'file'}_${crypto.randomBytes(8).toString('hex')}_${fileObj.originalFilename || 'media'}`;
@@ -346,7 +345,7 @@ const server = http.createServer((req, res) => {
                         } else {
                             finalContent = `/uploads/${fileName}`;
                         }
-                    } catch (e) { console.error("Ошибка сохранения файла:", e); }
+                    } catch (e) { console.error("Ошибка сохранения медиафайла:", e); }
                 }
 
                 const now = new Date();
@@ -372,7 +371,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 6. Раздача медиа
+    // 6. Раздача сохраненных медиаресурсов (картинки, видео, аудио, доки)
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
@@ -391,7 +390,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 7. Главная страница
+    // 7. Отдача статического интерфейса
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
