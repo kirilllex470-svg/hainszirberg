@@ -311,12 +311,32 @@ const server = http.createServer((req, res) => {
     }
 
     // 5. FormData Прием (ФИКСИРОВАННЫЙ СТРОКОВЫЙ ПАРСЕР ТЕКСТА И МЕДИА)
-    if (req.url === '/api/send' && req.method === 'POST') {
-        const contentType = req.headers['content-type'];
-        if (!contentType || !contentType.includes('multipart/form-data')) {
-            res.writeHead(400); return res.end('Ожидался FormData');
-        }
-        
+            for (let part of parts) {
+                if (part.includes('Content-Disposition: form-data;')) {
+                    const nameMatch = part.match(/name="([^"]+)"/);
+                    if (!nameMatch) continue;
+                    const name = nameMatch[1]; // ФИКС: Берем строго [1] строковое значение группы!
+
+                    if (part.includes('filename="')) {
+                        const filenameMatch = part.match(/filename="([^"]+)"/);
+                        if (filenameMatch) {
+                            originalFileName = filenameMatch[1]; // ФИКС: Берем строго [1] строковое значение!
+                            if (originalFileName.includes('.')) {
+                                const splitName = originalFileName.split('.');
+                                fileExt = splitName[splitName.length - 1];
+                            }
+                        }
+                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
+                        const fileContentBinary = part.substring(headerEnd, part.length - 2);
+                        fileBuffer = Buffer.from(fileContentBinary, 'binary');
+                    } else {
+                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
+                        const value = part.substring(headerEnd, part.length - 2).trim();
+                        fields[name] = Buffer.from(value, 'binary').toString('utf-8');
+                    }
+                }
+            }
+
         const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
         const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
         if (!boundary) { res.writeHead(400); return res.end('Не найден boundary'); }
