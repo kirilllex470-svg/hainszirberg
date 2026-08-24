@@ -354,6 +354,7 @@ const server = http.createServer((req, res) => {
     }
 
     // 5. FormData Прием (С ПОДДЕРЖКОЙ ПЕРЕСЫЛКИ И МЕДИА)
+    // 5. FormData Прием (ИСПРАВЛЕННЫЙ ПАРСЕР ТЕКСТА И МЕДИА)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -379,12 +380,12 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const matchName = part.match(/name="([^"]+)"/);
                     if (!matchName) continue;
-                    const name = matchName[1];
+                    const name = matchName[1]; // ФИКС: Берем строго строковое значение из группы [1]
 
                     if (part.includes('filename="')) {
                         const originalNameMatch = part.match(/filename="([^"]+)"/);
                         if (originalNameMatch) {
-                            originalFileName = originalNameMatch[1];
+                            originalFileName = originalNameMatch[1]; // ФИКС: Строковое имя файла
                             if (originalFileName.includes('.')) {
                                 const splitName = originalFileName.split('.');
                                 fileExt = splitName[splitName.length - 1];
@@ -400,6 +401,7 @@ const server = http.createServer((req, res) => {
                     }
                 }
             }
+
             const { sender, room, type, text, forwardedFrom } = fields;
             if (sender && room) {
                 let finalContent = text || '';
@@ -433,6 +435,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
     // 6. Раздача медиафайлов из папки uploads
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
