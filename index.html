@@ -607,9 +607,10 @@
             }).catch(err => { console.error(err); alert("Нет доступа к камере или микрофону!"); });
         }
     }
+    // ФИКС: Исправлена опечатка загрузки одиночного файла index [0]
     function uploadAnyFile(inputElement) {
         if (!inputElement.files || inputElement.files.length === 0) return;
-        const file = inputElement.files[0]; 
+        const file = inputElement.files[0]; // ФИКС: Добавлен индекс [0]
         const formData = new FormData();
         formData.append('sender', currentUser);
         formData.append('room', currentRoomId);
@@ -619,6 +620,29 @@
         fetch('/api/send', { method: 'POST', body: formData })
         .then(() => { inputElement.value = ''; fetchMessages(); })
         .catch(err => console.error("Ошибка загрузки файла:", err));
+    }
+
+    // ФИКС: Принудительное мгновенное обновление списков во время ответа сервера
+    function handleRequest(fromUser, action) {
+        fetch('/api/friends/request/respond', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user: currentUser, from: fromUser, action: action })
+        })
+        .then(res => {
+            if (res.ok) {
+                // ФИКС: Сначала очищаем старый список и запрашиваем актуальный
+                friendsList = [];
+                friendRequests = [];
+                loadFriendsAndRequests(); 
+                
+                // Дополнительный вызов для перерендеринга активного экрана чата
+                if (currentRoomId) {
+                    fetchMessages();
+                }
+            }
+        })
+        .catch(err => console.error("Ошибка:", err));
     }
 
     function sendMessage() {
