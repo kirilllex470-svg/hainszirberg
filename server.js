@@ -30,8 +30,8 @@ let groupsDB = readJSON(GROUPS_FILE, {});
 let requestsDB = readJSON(REQUESTS_FILE, {});
 
 const db = { lastRead: {} };
-
 const server = http.createServer((req, res) => {
+    // 1. Авторизация и регистрация
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -61,6 +61,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
     // 2. Получение списка чатов со счетчиками непрочитанных
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -88,7 +89,9 @@ const server = http.createServer((req, res) => {
                     if (lastMsg.type === 'audio') lastMsgText = "🎙️ Голосовое сообщение";
                     else if (lastMsg.type === 'video') lastMsgText = "🎥 Видео-кружок";
                     else if (lastMsg.type === 'file') lastMsgText = "📎 Файл / Документ";
-                    else lastMsgText = lastMsg.text || "";
+                    else if (lastMsg.text && lastMsg.text.startsWith('{"quoteAuthor"')) {
+                        try { lastMsgText = JSON.parse(lastMsg.text).originalText; } catch(e) { lastMsgText = lastMsg.text; }
+                    } else lastMsgText = lastMsg.text || "";
                     lastMsgTime = lastMsg.time || "";
                     
                     roomMessages.forEach(msg => {
@@ -114,7 +117,9 @@ const server = http.createServer((req, res) => {
                         if (lastMsg.type === 'audio') lastMsgText = `🎙️ ${lastMsg.sender}: Голосовое`;
                         else if (lastMsg.type === 'video') lastMsgText = `🎥 ${lastMsg.sender}: Кружок`;
                         else if (lastMsg.type === 'file') lastMsgText = `📎 ${lastMsg.sender}: Файл`;
-                        else lastMsgText = `${lastMsg.sender}: ${lastMsg.text || ""}`;
+                        else if (lastMsg.text && lastMsg.text.startsWith('{"quoteAuthor"')) {
+                            try { lastMsgText = `${lastMsg.sender}: ${JSON.parse(lastMsg.text).originalText}`; } catch(e) { lastMsgText = `${lastMsg.sender}: ${lastMsg.text}`; }
+                        } else lastMsgText = `${lastMsg.sender}: ${lastMsg.text || ""}`;
                         lastMsgTime = lastMsg.time || "";
 
                         roomMessages.forEach(msg => {
@@ -130,7 +135,6 @@ const server = http.createServer((req, res) => {
         }
         return res.end(JSON.stringify([]));
     }
-
     // 3. Отправка запроса в друзья
     if (req.url === '/api/friends/request/send' && req.method === 'POST') {
         let body = '';
@@ -306,7 +310,7 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. FormData Прием (БЕЗОШИБОЧНЫЙ СТРОКОВЫЙ ПАРСЕР ТЕКСТА И МЕДИА)
+    // 5. FormData Прием (ФИКСИРОВАННЫЙ СТРОКОВЫЙ ПАРСЕР ТЕКСТА И МЕДИА)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -332,12 +336,12 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const nameMatch = part.match(/name="([^"]+)"/);
                     if (!nameMatch) continue;
-                    const name = nameMatch[1]; // Фикс регулярки: берем строго значение из первой группы
+                    const name = nameMatch[1]; // Фикс: извлекаем строго строку
 
                     if (part.includes('filename="')) {
                         const filenameMatch = part.match(/filename="([^"]+)"/);
                         if (filenameMatch) {
-                            originalFileName = filenameMatch[1]; // Фикс регулярки
+                            originalFileName = filenameMatch[1]; // Фикс: извлекаем строго строку
                             if (originalFileName.includes('.')) {
                                 const splitName = originalFileName.split('.');
                                 fileExt = splitName[splitName.length - 1];
@@ -419,4 +423,4 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
+server.listen(PORT, () => { console.log(`Сервер мессенджера запущен на порту ${PORT}`); });
