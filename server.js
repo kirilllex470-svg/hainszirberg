@@ -337,12 +337,12 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const nameMatch = part.match(/name="([^"]+)"/);
                     if (!nameMatch) continue;
-                    const name = nameMatch[1]; // ФИКС: извлекаем строго строку
+                    const name = nameMatch[1]; // ФИКС: Берем строго [1] строковое значение группы!
 
                     if (part.includes('filename="')) {
                         const filenameMatch = part.match(/filename="([^"]+)"/);
                         if (filenameMatch) {
-                            originalFileName = filenameMatch[1]; // ФИКС: извлекаем строго строку
+                            originalFileName = filenameMatch[1]; // ФИКС: Берем строго [1] строку!
                             if (originalFileName.includes('.')) {
                                 const splitName = originalFileName.split('.');
                                 fileExt = splitName[splitName.length - 1];
@@ -358,6 +358,7 @@ const server = http.createServer((req, res) => {
                     }
                 }
             }
+
 
             const { sender, room, type, text, forwardedFrom } = fields;
             if (sender && room) {
