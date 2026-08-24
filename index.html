@@ -14,20 +14,19 @@
         .auth-input { width: 100%; padding: 14px 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; outline: none; background: rgba(15, 23, 42, 0.8); color: #f8fafc; font-size: 16px; }
         .auth-btn { width: 100%; padding: 14px; background: #00a884; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         #auth-error { color: #f43f5e; font-size: 14px; margin-bottom: 12px; display: none; }
-        
         #app-screen { display: none; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); position: relative; flex-direction: row; overflow: hidden; }
         .sidebar { width: 32%; min-width: 300px; height: 100%; background: #0f172a; border-right: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; z-index: 5; transition: transform 0.25s ease-in-out; }
         .sidebar-header { background: rgba(30, 41, 59, 0.5); height: 60px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         .sidebar-user { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 15px; color: #f8fafc; min-width: 0; flex: 1; }
         .sidebar-user span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .logout-btn { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+        
         .search-container { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; background: rgba(15, 23, 42, 0.2); border-bottom: 1px solid rgba(255,255,255,0.02); }
         .search-row { display: flex; gap: 8px; width: 100%; }
         .search-input { flex: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 15px; outline: none; min-width: 0; }
         .add-friend-btn { background: rgba(0, 168, 132, 0.2); color: #00ca9e; border: 1px solid rgba(0, 168, 132, 0.3); padding: 0 14px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 15px; }
         .create-group-btn { width: 100%; padding: 8px; background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
 
-        /* Стили для секции заявок в друзья */
         .requests-section { border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(244, 180, 26, 0.03); max-height: 150px; overflow-y: auto; }
         .request-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(30, 41, 59, 0.3); border-bottom: 1px solid rgba(255,255,255,0.02); }
         .request-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
@@ -37,7 +36,6 @@
         .req-btn { border: none; padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
         .req-accept { background: #00a884; color: white; }
         .req-decline { background: rgba(244, 63, 94, 0.2); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); }
-
         .msg-forwarded-label { font-size: 11px; font-style: italic; color: rgba(255, 255, 255, 0.5); padding-bottom: 3px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
         .other-msg .msg-forwarded-label { color: #94a3b8; }
         .friends-list { flex: 1; overflow-y: auto; padding: 8px; }
@@ -61,7 +59,6 @@
         .user-info { min-width: 0; margin-left: 12px; }
         .partner-title { color: #f8fafc; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .partner-status { color: #00ca9e; font-size: 12px; }
-        
         #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(10, 15, 30, 0.3); }
         .chat-placeholder { margin: auto; background: rgba(30, 41, 59, 0.8); padding: 16px 24px; border-radius: 16px; color: #94a3b8; font-size: 14px; text-align: center; max-width: 85%; border: 1px solid rgba(255,255,255,0.05); }
         .message-row { display: flex; width: 100%; }
@@ -78,6 +75,7 @@
         .video-round { width: 300px; height: 300px; border-radius: 50%; object-fit: cover; border: 4px solid #00a884; box-shadow: 0 6px 20px rgba(0,0,0,0.4); background: black; display: block; cursor: pointer; transition: transform 0.2s ease; }
         .video-round:active { transform: scale(0.98); }
         .audio-player { outline: none; height: 40px; max-width: 220px; display: block; margin-top: 2px; }
+
         .chat-image { max-width: 280px; max-height: 280px; border-radius: 12px; display: block; margin-top: 4px; border: 1px solid rgba(255,255,255,0.1); object-fit: cover; }
         .chat-file-card { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 12px; margin-top: 4px; text-decoration: none; color: #f1f5f9; border: 1px solid rgba(255,255,255,0.05); }
         .chat-file-icon { font-size: 24px; }
@@ -89,7 +87,6 @@
         .context-menu button:hover { background: rgba(255,255,255,0.05); color: #00ca9e; }
         .context-menu button.delete-btn { color: #f43f5e; }
         .context-menu button.delete-btn:hover { background: rgba(244,63,94,0.1); }
-        
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-box { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; border-radius: 20px; padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; max-height: 70vh; }
         .modal-box h3 { color: #f8fafc; margin-bottom: 16px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
@@ -111,6 +108,10 @@
         
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
+        /* ИСПРАВЛЕНИЕ: Видимость текста чата */
+        .msg-text { color: #f8fafc !important; font-size: 15px; line-height: 1.4; display: block; padding: 2px 0; }
+        .msg-time { font-size: 11px; color: rgba(255, 255, 255, 0.4); text-align: right; margin-top: 4px; width: 100%; }
+
         @media (max-width: 767px) {
             #app-screen { width: 100%; height: 100%; border-radius: 0; }
             .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; height: 100%; background: #0f172a; }
@@ -122,24 +123,6 @@
             .audio-player { max-width: 190px; }
             #text-input, #send-btn { height: 42px; padding: 0 12px; font-size: 16px; }
         }
-                /* Фикс: Делаем обычный текст сообщения видимым */
-        .msg-text {
-            color: #f8fafc !important;
-            font-size: 15px;
-            line-height: 1.4;
-            display: block;
-            padding: 2px 0;
-        }
-        
-        /* Фикс: Оформление и выравнивание времени внутри пузыря */
-        .msg-time {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.4);
-            text-align: right;
-            margin-top: 4px;
-            width: 100%;
-        }
-
     </style>
 </head>
 <body>
@@ -168,9 +151,7 @@
                 <button class="create-group-btn" onclick="openCreateGroupModal()">👥 Создать конференцию</button>
             </div>
 
-            <!-- Секция для отображения входящих заявок в друзья -->
             <div class="requests-section" id="requests-box"></div>
-
             <div class="friends-list" id="friends-box"></div>
         </div>
 
@@ -220,7 +201,6 @@
             <button onclick="submitCreateGroup()" class="auth-btn" style="background:#0284c7;">Создать</button>
         </div>
     </div>
-  
 
 <script>
     let currentUser = localStorage.getItem('chat_username') || null;
@@ -287,20 +267,13 @@
 
     function loadFriendsAndRequests() {
         if (!currentUser) return;
-        // Запрос списка друзей и входящих заявок одним вызовом
         fetch(`/api/friends/get?user=${currentUser}`)
             .then(res => res.json())
-            .then(data => { 
-                friendsList = data; 
-                renderFriends(); 
-            });
+            .then(data => { friendsList = data; renderFriends(); });
 
         fetch(`/api/friends/requests?user=${currentUser}`)
             .then(res => res.json())
-            .then(data => {
-                friendRequests = data;
-                renderRequests();
-            });
+            .then(data => { friendRequests = data; renderRequests(); });
     }
 
     function sendFriendRequest() {
@@ -319,16 +292,13 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) {
-                alert(`Запрос в друзья успешно отправлен пользователю ${targetName}`);
-                input.value = '';
-            } else {
-                alert(data.message || "Ошибка отправки запроса");
-            }
+            if (data.success) { alert(`Запрос отправлен пользователю ${targetName}`); input.value = ''; }
+            else { alert(data.message || "Ошибка отправки запроса"); }
         })
-        .catch(() => alert("Пользователь не найден или ошибка сервера"));
+        .catch(() => alert("Пользователь не найден"));
     }
 
+    // ИСПРАВЛЕНИЕ: Мгновенный перезапуск рендеринга списков после ответа сервера
     function handleRequest(fromUser, action) {
         fetch('/api/friends/request/respond', {
             method: 'POST',
@@ -336,23 +306,14 @@
             body: JSON.stringify({ user: currentUser, from: fromUser, action: action })
         })
         .then(res => {
-            if (res.ok) {
-                // Фикс: Запрашиваем списки только после успешного ответа сервера
-                loadFriendsAndRequests(); 
-            } else {
-                console.error("Сервер вернул ошибку при обработке заявки");
-            }
+            if (res.ok) { loadFriendsAndRequests(); }
         })
-        .catch(err => console.error("Ошибка сети:", err));
+        .catch(err => console.error(err));
     }
-
     function renderRequests() {
         const box = document.getElementById('requests-box');
         box.innerHTML = '';
-        if (friendRequests.length === 0) {
-            box.style.display = 'none';
-            return;
-        }
+        if (friendRequests.length === 0) { box.style.display = 'none'; return; }
         box.style.display = 'block';
         friendRequests.forEach(req => {
             const item = document.createElement('div');
@@ -438,18 +399,14 @@
     }
     function deleteFriend(friendObj, event) {
         if (event) event.stopPropagation();
-        
         if (friendObj.isGroup) {
             if (!confirm(`Удалить групповую конференцию "${friendObj.name}" для всех участников?`)) return;
-            
             fetch('/api/groups/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ groupId: friendObj.id })
             }).then(() => {
-                if (isCurrentGroup && currentRoomId === friendObj.id) {
-                    resetChatArea();
-                }
+                if (isCurrentGroup && currentRoomId === friendObj.id) resetChatArea();
                 loadFriendsAndRequests();
             });
             return;
@@ -457,10 +414,7 @@
 
         if (!confirm(`Удалить ${friendObj.name} из контактов?`)) return;
         const cleanNames = friendsList.filter(f => !f.isGroup && f.name.toLowerCase() !== friendObj.name.toLowerCase()).map(f => f.name);
-
-        if (!isCurrentGroup && currentPartner && currentPartner.toLowerCase() === friendObj.name.toLowerCase()) {
-            resetChatArea();
-        }
+        if (!isCurrentGroup && currentPartner && currentPartner.toLowerCase() === friendObj.name.toLowerCase()) resetChatArea();
 
         fetch('/api/friends/save', {
             method: 'POST',
@@ -480,13 +434,10 @@
 
     function selectChat(itemObj) {
         if (itemObj.isGroup) {
-            currentPartner = itemObj.name;
-            currentRoomId = itemObj.id; 
-            isCurrentGroup = true;
+            currentPartner = itemObj.name; currentRoomId = itemObj.id; isCurrentGroup = true;
             document.getElementById('chat-status').textContent = "конференция";
         } else {
-            currentPartner = itemObj.name;
-            isCurrentGroup = false;
+            currentPartner = itemObj.name; isCurrentGroup = false;
             const sorted = [currentUser.toLowerCase(), currentPartner.toLowerCase()].sort();
             currentRoomId = `${sorted}_${sorted}`;
             document.getElementById('chat-status').textContent = "в сети";
@@ -530,9 +481,7 @@
     function toggleVoiceRecord() {
         const btn = document.getElementById('voice-btn');
         if (audioRecorder && audioRecorder.state === "recording") {
-            audioRecorder.stop();
-            btn.classList.remove('recording');
-            btn.textContent = "🎙️";
+            audioRecorder.stop(); btn.classList.remove('recording'); btn.textContent = "🎙️";
         } else {
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
                 audioChunks = [];
@@ -543,19 +492,13 @@
                 audioRecorder.onstop = () => {
                     const blob = new Blob(audioChunks, { type: audioRecorder.mimeType });
                     const formData = new FormData();
-                    formData.append('sender', currentUser);
-                    formData.append('room', currentRoomId);
-                    formData.append('type', 'audio');
-                    formData.append('media', blob, 'voice.webm');
+                    formData.append('sender', currentUser); formData.append('room', currentRoomId);
+                    formData.append('type', 'audio'); formData.append('media', blob, 'voice.webm');
 
-                    fetch('/api/send', { method: 'POST', body: formData })
-                    .then(() => fetchMessages())
-                    .catch(err => console.error(err));
+                    fetch('/api/send', { method: 'POST', body: formData }).then(() => fetchMessages());
                     stream.getTracks().forEach(track => track.stop());
                 };
-                audioRecorder.start();
-                btn.classList.add('recording');
-                btn.textContent = "🛑";
+                audioRecorder.start(); btn.classList.add('recording'); btn.textContent = "🛑";
             }).catch(() => alert("Нет доступа к микрофону!"));
         }
     }
@@ -564,23 +507,14 @@
         const btn = document.getElementById('video-btn');
         const preview = document.getElementById('video-preview');
         if (videoRecorder && videoRecorder.state === "recording") {
-            videoRecorder.stop();
-            btn.classList.remove('recording');
-            btn.textContent = "🎥";
+            videoRecorder.stop(); btn.classList.remove('recording'); btn.textContent = "🎥";
             preview.style.display = 'none';
-            if (preview.srcObject) {
-                preview.srcObject.getTracks().forEach(track => track.stop());
-                preview.srcObject = null;
-            }
+            if (preview.srcObject) { preview.srcObject.getTracks().forEach(track => track.stop()); preview.srcObject = null; }
         } else {
             navigator.mediaDevices.getUserMedia({ 
-                audio: { echoCancellation: true, noiseSuppression: true }, 
-                video: { width: 320, height: 320, facingMode: "user" } 
+                audio: { echoCancellation: true, noiseSuppression: true }, video: { width: 320, height: 320, facingMode: "user" } 
             }).then(stream => {
-                videoChunks = [];
-                videoStreamRef = stream;
-                preview.srcObject = stream;
-                preview.style.display = 'block';
+                videoChunks = []; videoStreamRef = stream; preview.srcObject = stream; preview.style.display = 'block';
                 let options = {};
                 if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) { options = { mimeType: 'video/mp4;codecs=avc1,mp4a.40.2' }; }
                 else if (MediaRecorder.isTypeSupported('video/mp4')) { options = { mimeType: 'video/mp4' }; }
@@ -591,58 +525,26 @@
                     const blob = new Blob(videoChunks, { type: videoRecorder.mimeType || 'video/mp4' });
                     const fileExt = videoRecorder.mimeType && videoRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
                     const formData = new FormData();
-                    formData.append('sender', currentUser);
-                    formData.append('room', currentRoomId);
-                    formData.append('type', 'video');
-                    formData.append('media', blob, `video.${fileExt}`);
+                    formData.append('sender', currentUser); formData.append('room', currentRoomId);
+                    formData.append('type', 'video'); formData.append('media', blob, `video.${fileExt}`);
 
-                    fetch('/api/send', { method: 'POST', body: formData })
-                    .then(() => fetchMessages())
-                    .catch(err => console.error(err));
+                    fetch('/api/send', { method: 'POST', body: formData }).then(() => fetchMessages());
                     if (videoStreamRef) { videoStreamRef.getTracks().forEach(track => track.stop()); }
                 };
-                videoRecorder.start();
-                btn.classList.add('recording');
-                btn.textContent = "🛑";
-            }).catch(err => { console.error(err); alert("Нет доступа к камере или микрофону!"); });
+                videoRecorder.start(); btn.classList.add('recording'); btn.textContent = "🛑";
+            }).catch(() => alert("Нет доступа к камере!"));
         }
     }
-    // ФИКС: Исправлена опечатка загрузки одиночного файла index [0]
     function uploadAnyFile(inputElement) {
         if (!inputElement.files || inputElement.files.length === 0) return;
-        const file = inputElement.files[0]; // ФИКС: Добавлен индекс [0]
+        const file = inputElement.files[0]; // Фикс: Извлечен конкретный элемент файла
         const formData = new FormData();
-        formData.append('sender', currentUser);
-        formData.append('room', currentRoomId);
-        formData.append('type', 'file');
-        formData.append('media', file, file.name);
+        formData.append('sender', currentUser); formData.append('room', currentRoomId);
+        formData.append('type', 'file'); formData.append('media', file, file.name);
 
         fetch('/api/send', { method: 'POST', body: formData })
         .then(() => { inputElement.value = ''; fetchMessages(); })
-        .catch(err => console.error("Ошибка загрузки файла:", err));
-    }
-
-    // ФИКС: Принудительное мгновенное обновление списков во время ответа сервера
-    function handleRequest(fromUser, action) {
-        fetch('/api/friends/request/respond', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user: currentUser, from: fromUser, action: action })
-        })
-        .then(res => {
-            if (res.ok) {
-                // ФИКС: Сначала очищаем старый список и запрашиваем актуальный
-                friendsList = [];
-                friendRequests = [];
-                loadFriendsAndRequests(); 
-                
-                // Дополнительный вызов для перерендеринга активного экрана чата
-                if (currentRoomId) {
-                    fetchMessages();
-                }
-            }
-        })
-        .catch(err => console.error("Ошибка:", err));
+        .catch(err => console.error(err));
     }
 
     function sendMessage() {
@@ -650,30 +552,19 @@
         const text = textInput.value.trim();
         if (text === '' || !currentUser || !currentRoomId) return;
         const formData = new FormData();
-        formData.append('sender', currentUser);
-        formData.append('room', currentRoomId);
-        formData.append('text', text);
-        formData.append('type', 'text');
-        fetch('/api/send', { method: 'POST', body: formData })
-        .then(() => { textInput.value = ''; fetchMessages(); });
+        formData.append('sender', currentUser); formData.append('room', currentRoomId);
+        formData.append('text', text); formData.append('type', 'text');
+        fetch('/api/send', { method: 'POST', body: formData }).then(() => { textInput.value = ''; fetchMessages(); });
     }
 
     function openMessageMenu(event, messageId, messageText, messageType, originalSender) {
         if (event) event.stopPropagation();
-        activeMessageId = messageId;
-        activeMessageText = messageText;
-        activeMessageType = messageType;
-        activeMessageOriginalSender = originalSender; 
-
+        activeMessageId = messageId; activeMessageText = messageText; activeMessageType = messageType; activeMessageOriginalSender = originalSender; 
         const menu = document.getElementById('msg-context-menu');
-        menu.style.display = 'block';
-        menu.style.left = `${event.clientX}px`;
-        menu.style.top = `${event.clientY}px`;
+        menu.style.display = 'block'; menu.style.left = `${event.clientX}px`; menu.style.top = `${event.clientY}px`;
     }
 
-    document.addEventListener('click', () => { 
-        document.getElementById('msg-context-menu').style.display = 'none'; 
-    });
+    document.addEventListener('click', () => { document.getElementById('msg-context-menu').style.display = 'none'; });
 
     function triggerDeleteMessage() {
         if (!confirm("Удалить это сообщение?")) return;
@@ -683,7 +574,6 @@
             body: JSON.stringify({ room: currentRoomId, messageId: activeMessageId })
         }).then(() => fetchMessages());
     }
-
     function triggerForwardMessage() {
         const modal = document.getElementById('forward-modal');
         const listContainer = document.getElementById('modal-contacts-list');
@@ -692,8 +582,7 @@
             listContainer.innerHTML = '<div style="color:#64748b;font-size:14px;text-align:center;">Нет контактов</div>'; 
         } else {
             friendsList.forEach(f => {
-                const item = document.createElement('div');
-                item.className = 'modal-item';
+                const item = document.createElement('div'); item.className = 'modal-item';
                 const displayName = f.isGroup ? `👥 ${f.name}` : f.name;
                 item.innerHTML = `<span>${displayName}</span><span class="modal-forward-icon">➔</span>`;
                 item.onclick = () => executeForward(f);
@@ -703,9 +592,7 @@
         modal.style.display = 'flex';
     }
 
-    function closeForwardModal() { 
-        document.getElementById('forward-modal').style.display = 'none'; 
-    }
+    function closeForwardModal() { document.getElementById('forward-modal').style.display = 'none'; }
 
     function executeForward(targetObj) {
         let targetRoomId = targetObj.isGroup ? targetObj.id : `${[currentUser.toLowerCase(), targetObj.name.toLowerCase()].sort()}_${[currentUser.toLowerCase(), targetObj.name.toLowerCase()].sort()}`;
@@ -716,36 +603,90 @@
             if (activeMessageType === 'file') { try { fileUrl = JSON.parse(activeMessageText).path; } catch(e) {} }
             fetch(fileUrl).then(res => res.blob()).then(blob => {
                 const formData = new FormData();
-                formData.append('sender', currentUser);
-                formData.append('room', targetRoomId);
-                formData.append('type', activeMessageType);
-                formData.append('forwardedFrom', originalAuthor);
+                formData.append('sender', currentUser); formData.append('room', targetRoomId);
+                formData.append('type', activeMessageType); formData.append('forwardedFrom', originalAuthor);
                 formData.append('media', blob, activeMessageType === 'file' ? 'forwarded_file' : 'media_file');
                 fetch('/api/send', { method: 'POST', body: formData })
-                .then(() => { closeForwardModal(); alert(`Переслано в ${targetObj.name}`); loadFriendsAndRequests(); });
+                .then(() => { closeForwardModal(); alert(`Переслано`); loadFriendsAndRequests(); });
             });
         } else {
             const formData = new FormData();
-            formData.append('sender', currentUser);
-            formData.append('room', targetRoomId);
-            formData.append('text', activeMessageText);
-            formData.append('type', 'text');
-            formData.append('forwardedFrom', originalAuthor);
-
+            formData.append('sender', currentUser); formData.append('room', targetRoomId);
+            formData.append('text', activeMessageText); formData.append('type', 'text'); formData.append('forwardedFrom', originalAuthor);
             fetch('/api/send', { method: 'POST', body: formData })
-            .then(() => { closeForwardModal(); alert(`Переслано в ${targetObj.name}`); loadFriendsAndRequests(); });
+            .then(() => { closeForwardModal(); alert(`Переслано`); loadFriendsAndRequests(); });
         }
+    }
+    function fetchMessages() {
+        if (!currentUser || !currentRoomId) return;
+        fetch(`/api/messages?room=${currentRoomId}`).then(res => res.json()).then(data => {
+            if (data.length === lastMessagesCount) return; 
+            
+            if (lastMessagesCount > 0 && data.length > lastMessagesCount) {
+                const lastMsg = data[data.length - 1];
+                if (lastMsg.sender.toLowerCase() !== currentUser.toLowerCase()) {
+                    let notifyBody = lastMsg.text;
+                    if (lastMsg.type === 'audio') notifyBody = "🎙️ Голосовое сообщение";
+                    if (lastMsg.type === 'video') notifyBody = "🎥 Видео-кружок";
+                    if (lastMsg.type === 'file') { try { notifyBody = `📎 Файл: ${JSON.parse(lastMsg.text).name}`; } catch(e) {} }
+
+                    if (document.hidden && Notification.permission === "granted") {
+                        new Notification(`WhatsApp Premium: ${lastMsg.sender}`, { body: notifyBody, tag: currentRoomId });
+                    }
+                    try {
+                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+                        oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+                        oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                        oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.15);
+                    } catch (e) {}
+                }
+            }
+
+            lastMessagesCount = data.length; messagesDiv.innerHTML = '';
+            if(data.length === 0) { messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; return; }
+            
+            data.forEach(msg => {
+                const row = document.createElement('div');
+                const isMy = msg.sender.toLowerCase() === currentUser.toLowerCase();
+                row.className = `message-row ${isMy ? 'my-msg' : 'other-msg'}`;
+                
+                let contentHTML = '';
+                if (msg.type === 'audio') { contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`; }
+                else if (msg.type === 'video') { contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop onclick="playVideoWithSound(this)"></video>`; }
+                else if (msg.type === 'file') {
+                    try {
+                        const fileObj = JSON.parse(msg.text);
+                        const ext = fileObj.name.split('.').pop().toLowerCase();
+                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) { contentHTML = `<img class="chat-image" src="${fileObj.path}" onclick="window.open(this.src)">`; }
+                        else { contentHTML = `<a href="${fileObj.path}" target="_blank" class="chat-file-card"><span class="chat-file-icon">📄</span><div class="chat-file-info"><span class="chat-file-name">${fileObj.name}</span><span class="chat-file-action">Скачать</span></div></a>`; }
+                    } catch(e) { contentHTML = `<div class="msg-text">Поврежденный файл</div>`; }
+                } else { contentHTML = `<div class="msg-text">${msg.text}</div>`; }
+                
+                const bubble = document.createElement('div'); bubble.className = 'bubble';
+                const forwardHTML = msg.forwardedFrom ? `<div class="msg-forwarded-label">↪ Переслано от: ${msg.forwardedFrom}</div>` : '';
+                const authorHTML = (isCurrentGroup && !isMy) ? `<div class="msg-author">${msg.sender}</div>` : '';
+                
+                bubble.innerHTML = `${forwardHTML}${authorHTML}${contentHTML}<div class="msg-time">${msg.time}</div>`;
+                bubble.onclick = (e) => openMessageMenu(e, msg.id, msg.text, msg.type, msg.forwardedFrom || msg.sender);
+                
+                row.appendChild(bubble); messagesDiv.appendChild(row);
+            });
+            setTimeout(() => { messagesDiv.scrollTop = messagesDiv.scrollHeight; }, 50);
+
+            if (data.length > 0 && currentPartner) {
+                fetch('/api/messages/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: currentUser, room: currentRoomId }) });
+            }
+        }).catch(() => console.log("Сбой"));
     }
 
     function playVideoWithSound(videoElement) {
         if (window.event) window.event.stopPropagation();
-        if (!videoElement.muted) { 
-            videoElement.muted = true; videoElement.loop = true; videoElement.play(); videoElement.style.borderColor = "#00a884"; 
-        } else {
+        if (!videoElement.muted) { videoElement.muted = true; videoElement.loop = true; videoElement.play(); videoElement.style.borderColor = "#00a884"; }
+        else {
             videoElement.muted = false; videoElement.loop = false; videoElement.currentTime = 0; videoElement.style.borderColor = "#f43f5e"; videoElement.play();
-            videoElement.onended = function() { 
-                videoElement.muted = true; videoElement.loop = true; videoElement.currentTime = 0; videoElement.play(); videoElement.style.borderColor = "#00a884"; 
-            };
+            videoElement.onended = function() { videoElement.muted = true; videoElement.loop = true; videoElement.currentTime = 0; videoElement.play(); videoElement.style.borderColor = "#00a884"; };
         }
     }
 </script>
