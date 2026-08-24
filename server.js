@@ -311,70 +311,47 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 5. FormData Прием (ФИКСИРОВАННЫЙ СТРОКОВЫЙ ПАРСЕР ТЕКСТА И МЕДИА)
+     // 5. FormData Прием — Использование профессионального formidable вместо сломанных регулярных выражений
     if (req.url === '/api/send' && req.method === 'POST') {
-        const contentType = req.headers['content-type'];
-        if (!contentType || !contentType.includes('multipart/form-data')) {
-            res.writeHead(400); return res.end('Ожидался FormData');
-        }
-        
-        const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
-        const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
-        if (!boundary) { res.writeHead(400); return res.end('Не найден boundary'); }
+        const formidable = require('formidable');
+        const form = new formidable.IncomingForm({
+            uploadDir: UPLOADS_DIR,
+            keepExtensions: true,
+            maxFileSize: 50 * 1024 * 1024 // лимит 50 мегабайт на кружки/файлы
+        });
 
-        let chunks = [];
-        req.on('data', chunk => chunks.push(chunk));
-        req.on('end', () => {
-            const buffer = Buffer.concat(chunks);
-            const bufferStr = buffer.toString('binary');
-            const parts = bufferStr.split('--' + boundary);
-            let fields = {};
-            let fileBuffer = null;
-            let fileExt = 'bin';
-            let originalFileName = '';
+        form.parse(req, (err, fields, files) => {
+            if (err) { res.writeHead(500); return res.end('Ошибка разбора данных'); }
 
-            for (let part of parts) {
-                if (part.includes('Content-Disposition: form-data;')) {
-                    const nameMatch = part.match(/name="([^"]+)"/);
-                    if (!nameMatch) continue;
-                    const name = nameMatch[1]; // ФИКС: Берем строго [1] строковое значение группы!
+            // Извлекаем поля (formidable гарантирует перевод в чистые строки)
+            const sender = Array.isArray(fields.sender) ? fields.sender[0] : fields.sender;
+            const room = Array.isArray(fields.room) ? fields.room[0] : fields.room;
+            const type = Array.isArray(fields.type) ? fields.type[0] : fields.type;
+            const text = Array.isArray(fields.text) ? fields.text[0] : fields.text;
+            const forwardedFrom = Array.isArray(fields.forwardedFrom) ? fields.forwardedFrom[0] : fields.forwardedFrom;
 
-                    if (part.includes('filename="')) {
-                        const filenameMatch = part.match(/filename="([^"]+)"/);
-                        if (filenameMatch) {
-                            originalFileName = filenameMatch[1]; // ФИКС: Берем строго [1] строку!
-                            if (originalFileName.includes('.')) {
-                                const splitName = originalFileName.split('.');
-                                fileExt = splitName[splitName.length - 1];
-                            }
-                        }
-                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
-                        const fileContentBinary = part.substring(headerEnd, part.length - 2);
-                        fileBuffer = Buffer.from(fileContentBinary, 'binary');
-                    } else {
-                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
-                        const value = part.substring(headerEnd, part.length - 2).trim();
-                        fields[name] = Buffer.from(value, 'binary').toString('utf-8');
-                    }
-                }
-            }
-
-
-            const { sender, room, type, text, forwardedFrom } = fields;
             if (sender && room) {
                 let finalContent = text || '';
-                if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
-                    const fileName = `${type}_${crypto.randomBytes(8).toString('hex')}.${fileExt}`;
-                    const filePath = path.join(UPLOADS_DIR, fileName);
-                    fs.writeFileSync(filePath, fileBuffer);
-                    if (type === 'file') {
-                        finalContent = JSON.stringify({ path: `/uploads/${fileName}`, name: originalFileName });
-                    } else {
-                        finalContent = `/uploads/${fileName}`;
-                    }
+
+                // Если прилетел файл/голосовое/кружок
+                if (files.media) {
+                    const fileObj = Array.isArray(files.media) ? files.media[0] : files.media;
+                    const fileName = `${type || 'file'}_${crypto.randomBytes(8).toString('hex')}_${fileObj.originalFilename || 'media'}`;
+                    const targetPath = path.join(UPLOADS_DIR, fileName);
+                    
+                    try {
+                        fs.renameSync(fileObj.filepath, targetPath);
+                        if (type === 'file') {
+                            finalContent = JSON.stringify({ path: `/uploads/${fileName}`, name: fileObj.originalFilename });
+                        } else {
+                            finalContent = `/uploads/${fileName}`;
+                        }
+                    } catch (e) { console.error("Ошибка сохранения файла:", e); }
                 }
+
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
                 if (!roomsDB[room]) roomsDB[room] = [];
                 roomsDB[room].push({ 
                     id: crypto.randomBytes(8).toString('hex'), 
@@ -385,6 +362,7 @@ const server = http.createServer((req, res) => {
                     timestamp: Date.now(),
                     forwardedFrom: forwardedFrom || null
                 });
+
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
                 res.writeHead(200); return res.end('OK');
