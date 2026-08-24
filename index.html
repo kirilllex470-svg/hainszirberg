@@ -581,86 +581,59 @@
 
     function fetchMessages() {
         if (!currentUser || !currentRoomId) return;
-        fetch(`/api/messages?room=${currentRoomId}`)
-        .then(res => res.json())
-        .then(data => {
+        fetch(`/api/messages?room=${currentRoomId}`).then(res => res.json()).then(data => {
             if (data.length === lastMessagesCount) return; 
-            
-            // Звук и уведомления
             if (lastMessagesCount > 0 && data.length > lastMessagesCount) {
                 const lastMsg = data[data.length - 1];
                 if (lastMsg.sender.toLowerCase() !== currentUser.toLowerCase()) {
+                    let notifyBody = lastMsg.text;
+                    if (lastMsg.type === 'audio') notifyBody = "🎙️ Голосовое сообщение";
+                    if (lastMsg.type === 'video') notifyBody = "🎥 Видео-кружок";
+                    if (lastMsg.type === 'file') { try { notifyBody = `📎 Файл: ${JSON.parse(lastMsg.text).name}`; } catch(e) {} }
+                    if (lastMsg.text && lastMsg.text.startsWith('{"quoteAuthor"')) { try { notifyBody = JSON.parse(lastMsg.text).originalText; } catch(e) {} }
+                    if (document.hidden && Notification.permission === "granted") { new Notification(`WhatsApp Premium: ${lastMsg.sender}`, { body: notifyBody, tag: currentRoomId }); }
                     try {
-                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                        const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
-                        oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
-                        oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-                        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                        oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.15);
+                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)(); const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+                        oscillator.connect(gainNode); gainNode.connect(audioCtx.destination); oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime); oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.15);
                     } catch (e) {}
                 }
             }
-
-            lastMessagesCount = data.length; 
-            messagesDiv.innerHTML = '';
-            
-            if (data.length === 0) { 
-                messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; 
-                return; 
-            }
+            lastMessagesCount = data.length; messagesDiv.innerHTML = '';
+            if(data.length === 0) { messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; return; }
             
             data.forEach(msg => {
-                const row = document.createElement('div');
-                const isMy = msg.sender.toLowerCase() === currentUser.toLowerCase();
-                row.className = `message-row ${isMy ? 'my-msg' : 'other-msg'}`;
-                
-                let contentHTML = '';
+                const row = document.createElement('div'); const isMy = msg.sender.toLowerCase() === currentUser.toLowerCase(); row.className = `message-row ${isMy ? 'my-msg' : 'other-msg'}`;
+                let contentHTML = ''; let isQuote = false; let quoteObj = null;
+                if (msg.type === 'text' && msg.text && msg.text.startsWith('{"quoteAuthor"')) { try { quoteObj = JSON.parse(msg.text); isQuote = true; } catch(e) {} }
 
-                // Прямой вывод медиа и текста без сложных условий
-                if (msg.type === 'audio') { 
-                    contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`; 
-                } else if (msg.type === 'video') { 
-                    contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop onclick="playVideoWithSound(this)"></video>`; 
-                } else if (msg.type === 'file') {
+                if (isQuote && quoteObj) {
+                    contentHTML = `
+                        <div class="msg-quote-box"><div class="msg-quote-author">↱ ${quoteObj.quoteAuthor}</div><div class="msg-quote-text">${quoteObj.quoteText}</div></div>
+                        <div class="msg-text">${quoteObj.originalText}</div>
+                    `;
+                } else if (msg.type === 'audio') { contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`; }
+                else if (msg.type === 'video') { contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop onclick="playVideoWithSound(this)"></video>`; }
+                else if (msg.type === 'file') {
                     try {
-                        const fileObj = JSON.parse(msg.text);
-                        const ext = fileObj.name.split('.').pop().toLowerCase();
-                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) { 
-                            contentHTML = `<img class="chat-image" src="${fileObj.path}" onclick="window.open(this.src)">`; 
-                        } else { 
-                            contentHTML = `<a href="${fileObj.path}" target="_blank" class="chat-file-card"><span class="chat-file-icon">📄</span><div class="chat-file-info"><span class="chat-file-name">${fileObj.name}</span><span class="chat-file-action">Скачать</span></div></a>`; 
-                        }
-                    } catch(e) { 
-                        contentHTML = `<div class="msg-text">Файл</div>`; 
-                    }
-                } else { 
-                    // Если это текст (включая цитаты), выводим его напрямую в блок
-                    let displayUrl = msg.text || "";
-                    if (displayUrl.startsWith('{"quoteAuthor"')) {
-                        try { displayUrl = JSON.parse(displayUrl).originalText; } catch(e) {}
-                    }
-                    contentHTML = `<div class="msg-text">${displayUrl}</div>`; 
-                }
+                        const fileObj = JSON.parse(msg.text); const ext = fileObj.name.split('.').pop().toLowerCase();
+                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) { contentHTML = `<img class="chat-image" src="${fileObj.path}" onclick="window.open(this.src)">`; }
+                        else { contentHTML = `<a href="${fileObj.path}" target="_blank" class="chat-file-card"><span class="chat-file-icon">📄</span><div class="chat-file-info"><span class="chat-file-name">${fileObj.name}</span><span class="chat-file-action">Скачать</span></div></a>`; }
+                    } catch(e) { contentHTML = `<div class="msg-text">Поврежденный файл</div>`; }
+                } else { contentHTML = `<div class="msg-text">${msg.text || ""}</div>`; }
                 
-                const bubble = document.createElement('div'); 
-                bubble.className = 'bubble';
-                
+                const bubble = document.createElement('div'); bubble.className = 'bubble';
+                const forwardHTML = msg.forwardedFrom ? `<div class="msg-forwarded-label">↪ Переслано от: ${msg.forwardedFrom}</div>` : '';
                 const authorHTML = (isCurrentGroup && !isMy) ? `<div class="msg-author">${msg.sender}</div>` : '';
+                const crossHTML = `<div class="msg-delete-cross" onclick="event.stopPropagation(); quickDeleteMessage('${currentRoomId}', '${msg.id}')">&times;</div>`;
                 
-                // Простая кнопка удаления текстом (без наведения и скрытых стилей)
-                const deleteBtnHTML = `<span style="color:#f43f5e; font-size:11px; cursor:pointer; margin-left:8px;" onclick="event.stopPropagation(); quickDeleteMessage('${currentRoomId}', '${msg.id}')">[Удалить]</span>`;
-                
-                bubble.innerHTML = `${authorHTML}${contentHTML}<div class="msg-time">${msg.time} ${deleteBtnHTML}</div>`;
-                
-                // Временно отключаем свайпы, чтобы проверить базовую видимость
-                row.appendChild(bubble); 
-                messagesDiv.appendChild(row);
+                bubble.innerHTML = `${crossHTML}${forwardHTML}${authorHTML}${contentHTML}<div class="msg-time">${msg.time}</div>`;
+                initSwipeEvents(row, bubble, msg); row.appendChild(bubble); messagesDiv.appendChild(row);
             });
-            
             setTimeout(() => { messagesDiv.scrollTop = messagesDiv.scrollHeight; }, 50);
-        }).catch(err => console.log("Ошибка отрисовки чата:", err));
+            if (data.length > 0 && currentPartner) { fetch('/api/messages/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: currentUser, room: currentRoomId }) }); }
+        }).catch(() => console.log("Сбой"));
     }
-
 
     function playVideoWithSound(videoElement) {
         if (window.event) window.event.stopPropagation();
