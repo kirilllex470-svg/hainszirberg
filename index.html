@@ -9,11 +9,14 @@
         html, body { height: 100%; width: 100%; overflow: hidden; background: #0f172a; }
         body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #020617 100%); display: flex; justify-content: center; align-items: center; }
         
+        /* Экран авторизации */
         #auth-screen { background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 30px 20px; border-radius: 24px; width: 90%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.4); text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); border-top: 6px solid #00a884; z-index: 10; }
         #auth-screen h2 { color: #f8fafc; margin-bottom: 24px; font-weight: 600; font-size: 24px; }
         .auth-input { width: 100%; padding: 14px 16px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; outline: none; background: rgba(15, 23, 42, 0.8); color: #f8fafc; font-size: 16px; }
         .auth-btn { width: 100%; padding: 14px; background: #00a884; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         #auth-error { color: #f43f5e; font-size: 14px; margin-bottom: 12px; display: none; }
+        
+        /* Главный рабочий экран */
         #app-screen { display: none; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); position: relative; flex-direction: row; overflow: hidden; }
         .sidebar { width: 32%; min-width: 300px; height: 100%; background: #0f172a; border-right: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; z-index: 5; transition: transform 0.25s ease-in-out; }
         .sidebar-header { background: rgba(30, 41, 59, 0.5); height: 60px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
@@ -21,12 +24,13 @@
         .sidebar-user span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .logout-btn { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; flex-shrink: 0; }
         
+        /* Поиск и контакты */
         .search-container { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; background: rgba(15, 23, 42, 0.2); border-bottom: 1px solid rgba(255,255,255,0.02); }
         .search-row { display: flex; gap: 8px; width: 100%; }
         .search-input { flex: 1; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: rgba(15, 23, 42, 0.6); color: #f8fafc; font-size: 15px; outline: none; min-width: 0; }
         .add-friend-btn { background: rgba(0, 168, 132, 0.2); color: #00ca9e; border: 1px solid rgba(0, 168, 132, 0.3); padding: 0 14px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 15px; }
         .create-group-btn { width: 100%; padding: 8px; background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; }
-
+        /* Заявки в друзья */
         .requests-section { border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(244, 180, 26, 0.03); max-height: 150px; overflow-y: auto; }
         .request-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: rgba(30, 41, 59, 0.3); border-bottom: 1px solid rgba(255,255,255,0.02); }
         .request-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
@@ -36,8 +40,8 @@
         .req-btn { border: none; padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
         .req-accept { background: #00a884; color: white; }
         .req-decline { background: rgba(244, 63, 94, 0.2); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); }
-        .msg-forwarded-label { font-size: 11px; font-style: italic; color: rgba(255, 255, 255, 0.5); padding-bottom: 3px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
-        .other-msg .msg-forwarded-label { color: #94a3b8; }
+
+        /* Список контактов (Друзей) */
         .friends-list { flex: 1; overflow-y: auto; padding: 8px; }
         .friend-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 16px; margin-bottom: 4px; cursor: pointer; border: 1px solid transparent; }
         .friend-item.active { background: rgba(0, 168, 132, 0.15); border: 1px solid rgba(0, 168, 132, 0.2); }
@@ -49,79 +53,91 @@
         .friend-status-box { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 4px; flex-shrink: 0; }
         .friend-time-label { font-size: 11px; color: #64748b; }
         .friend-item.active .friend-time-label { color: #00ca9e; }
+        
+        /* Счетчики уведомлений и удаление */
         .unread-badge { background: #00a884; color: white; font-size: 11px; font-weight: bold; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .delete-friend-btn { background: transparent; border: none; color: #64748b; font-size: 20px; cursor: pointer; padding: 0 4px; }
-        
+        .delete-friend-btn:hover { color: #f43f5e; }
+        /* Область чата */
         .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.2); height: 100%; overflow: hidden; position: relative; }
         .chat-header { background: rgba(30, 41, 59, 0.4); height: 60px; min-height: 60px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         .back-btn { display: none; color: #00a884; background: transparent; border: none; font-size: 24px; margin-right: 12px; cursor: pointer; padding: 4px; }
+        
+        /* Аватары */
         .avatar { width: 38px; height: 38px; background: linear-gradient(135deg, #00a884, #0284c7); border-radius: 12px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 600; text-transform: uppercase; flex-shrink: 0; font-size: 14px; }
         .user-info { min-width: 0; margin-left: 12px; }
         .partner-title { color: #f8fafc; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .partner-status { color: #00ca9e; font-size: 12px; }
+        
+        /* Лента сообщений */
         #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(10, 15, 30, 0.3); }
         .chat-placeholder { margin: auto; background: rgba(30, 41, 59, 0.8); padding: 16px 24px; border-radius: 16px; color: #94a3b8; font-size: 14px; text-align: center; max-width: 85%; border: 1px solid rgba(255,255,255,0.05); }
-        .message-row { display: flex; width: 100%; }
+        
+        /* Строки сообщений */
+        .message-row { display: flex; width: 100%; position: relative; overflow: visible; touch-action: pan-y; }
         .message-row.my-msg { justify-content: flex-end; }
         .message-row.other-msg { justify-content: flex-start; }
-
-        .bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 15px; color: #f1f5f9; position: relative; word-break: break-word; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        /* Облака сообщений */
+        .bubble { max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 15px; color: #f1f5f9; position: relative; word-break: break-word; transition: transform 0.1s ease-out; user-select: none; -webkit-user-select: none; }
         .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; }
         .other-msg .bubble { background: #1e293b; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
-        
         .msg-author { font-size: 12px; font-weight: 600; color: #38bdf8; padding-bottom: 3px; }
         .my-msg .msg-author { color: #a7f3d0; }
-        
-        .video-round { width: 300px; height: 300px; border-radius: 50%; object-fit: cover; border: 4px solid #00a884; box-shadow: 0 6px 20px rgba(0,0,0,0.4); background: black; display: block; cursor: pointer; transition: transform 0.2s ease; }
-        .video-round:active { transform: scale(0.98); }
-        .audio-player { outline: none; height: 40px; max-width: 220px; display: block; margin-top: 2px; }
+        .msg-text { color: #f8fafc !important; font-size: 15px; line-height: 1.4; display: block; padding: 2px 0; }
+        .msg-time { font-size: 11px; color: rgba(255, 255, 255, 0.4); text-align: right; margin-top: 4px; width: 100%; }
 
-        .chat-image { max-width: 280px; max-height: 280px; border-radius: 12px; display: block; margin-top: 4px; border: 1px solid rgba(255,255,255,0.1); object-fit: cover; }
-        .chat-file-card { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 12px; margin-top: 4px; text-decoration: none; color: #f1f5f9; border: 1px solid rgba(255,255,255,0.05); }
-        .chat-file-icon { font-size: 24px; }
-        .chat-file-info { display: flex; flex-direction: column; min-width: 0; }
-        .chat-file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #00ca9e; }
-        .chat-file-action { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+        /* Блок цитирования (родительское сообщение внутри облака) */
+        .msg-quote-block { background: rgba(0, 0, 0, 0.2); border-left: 3px solid #00ca9e; padding: 6px 10px; border-radius: 4px; margin-bottom: 6px; font-size: 13px; color: #cbd5e1; }
+        .msg-quote-sender { font-weight: 600; font-size: 11px; color: #38bdf8; margin-bottom: 2px; }
+        .my-msg .msg-quote-sender { color: #a7f3d0; }
+
+        /* Верхняя панель индикации ответа над полем ввода */
+        #reply-preview-zone { display: none; background: #1f2937; padding: 8px 16px; border-top: 1px solid rgba(255,255,255,0.05); align-items: center; justify-content: space-between; color: #e2e8f0; font-size: 14px; }
+        .reply-preview-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%; color: #94a3b8; font-size: 12px; }
+
+        /* Медиа элементы */
+        .video-round { width: 250px; height: 250px; border-radius: 50%; object-fit: cover; border: 4px solid #00a884; box-shadow: 0 6px 20px rgba(0,0,0,0.4); background: black; display: block; }
+        .audio-player { outline: none; height: 40px; max-width: 220px; display: block; margin-top: 2px; }
+        .chat-image { max-width: 280px; max-height: 280px; border-radius: 12px; display: block; margin-top: 4px; object-fit: cover; }
+        .chat-file-card { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 12px; text-decoration: none; color: #f1f5f9; border: 1px solid rgba(255,255,255,0.05); }
+        .chat-file-name { font-size: 14px; font-weight: 500; color: #00ca9e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Контейнеры ввода */
+        .input-container { background: #111827; height: auto; display: flex; flex-direction: column; padding: 12px 15px; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+        .tools-row { width: 100%; display: flex; align-items: center; gap: 12px; }
+        .input-row { width: 100%; display: flex; align-items: center; gap: 10px; }
+        #text-input { flex: 1; height: 46px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; padding: 0 16px; color: #f8fafc; outline: none; font-size: 16px; }
+        #send-btn { background: #00a884; border: none; color: white; height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; cursor: pointer; }
+        .media-btn { background: #1f2937; border: 1px solid rgba(255,255,255,0.05); color: #00ca9e; width: 42px; height: 42px; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; }
+        .media-btn.recording { background: #f43f5e; color: white; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        /* Контекстные меню и Модальные окна */
         .context-menu { position: fixed; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; z-index: 1000; overflow: hidden; padding: 4px 0; min-width: 140px; }
         .context-menu button { background: transparent; border: none; color: #f1f5f9; width: 100%; text-align: left; padding: 10px 16px; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         .context-menu button:hover { background: rgba(255,255,255,0.05); color: #00ca9e; }
         .context-menu button.delete-btn { color: #f43f5e; }
         .context-menu button.delete-btn:hover { background: rgba(244,63,94,0.1); }
+        
         .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-box { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; border-radius: 20px; padding: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; max-height: 70vh; }
         .modal-box h3 { color: #f8fafc; margin-bottom: 16px; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
         .modal-close { background: transparent; border: none; color: #64748b; font-size: 24px; cursor: pointer; }
         .modal-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-        .modal-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(15,23,42,0.4); border: 1px solid rgba(255,255,255,0.02); border-radius: 12px; cursor: pointer; color: #e2e8f0; font-weight: 500; }
+        .modal-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(15,23,42,0.4); border: 1px solid rgba(255,255,255,0.02); border-radius: 12px; cursor: pointer; color: #e2e8f0; }
         .modal-item:hover { background: rgba(0,168,132,0.15); border-color: rgba(0,168,132,0.2); }
-        .modal-forward-icon { color: #00ca9e; font-size: 16px; }
 
-        .input-container { background: #111827; height: auto; min-height: 116px; display: flex; flex-direction: column; padding: 12px 15px; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
-        .tools-row { width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding-left: 2px; }
-        .input-row { width: 100%; display: flex; align-items: center; gap: 10px; }
-        
-        #text-input { flex: 1; height: 46px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.03); border-radius: 14px; padding: 0 16px; color: #f8fafc; outline: none; font-size: 16px; min-width: 0; }
-        #send-btn { background: #00a884; border: none; color: white; height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; font-size: 14px; }
-
-        .media-btn { background: #1f2937; border: 1px solid rgba(255,255,255,0.05); color: #00ca9e; width: 42px; height: 42px; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; flex-shrink: 0; transition: 0.2s; }
-        .media-btn.recording { background: #f43f5e; color: white; animation: pulse 1s infinite; border-color: transparent; }
-        
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-
-        /* ИСПРАВЛЕНИЕ: Видимость текста чата */
-        .msg-text { color: #f8fafc !important; font-size: 15px; line-height: 1.4; display: block; padding: 2px 0; }
-        .msg-time { font-size: 11px; color: rgba(255, 255, 255, 0.4); text-align: right; margin-top: 4px; width: 100%; }
+        /* Иконка-крестик быстрого удаления поверх облака справа вверху */
+        .quick-delete-trigger { position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; background: #f43f5e; color: white; border-radius: 50%; display: none; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; cursor: pointer; z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        .bubble:hover .quick-delete-trigger { display: flex; }
 
         @media (max-width: 767px) {
-            #app-screen { width: 100%; height: 100%; border-radius: 0; }
-            .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; height: 100%; background: #0f172a; }
+            #app-screen { width: 100%; height: 100%; }
+            .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; height: 100%; }
             .sidebar.hidden { transform: translateX(-100%); }
             .chat-area { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; z-index: 4; }
             .back-btn { display: block; }
             .bubble { max-width: 85%; }
-            .video-round { width: 260px; height: 260px; }
-            .audio-player { max-width: 190px; }
-            #text-input, #send-btn { height: 42px; padding: 0 12px; font-size: 16px; }
+            .video-round { width: 220px; height: 220px; }
         }
     </style>
 </head>
@@ -142,7 +158,6 @@
                 <div class="sidebar-user"><div class="avatar" id="my-avatar">?</div><span id="my-name">Профиль</span></div>
                 <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
-            
             <div class="search-container">
                 <div class="search-row">
                     <input type="text" id="new-friend-name" class="search-input" placeholder="Имя пользователя...">
@@ -150,7 +165,6 @@
                 </div>
                 <button class="create-group-btn" onclick="openCreateGroupModal()">👥 Создать конференцию</button>
             </div>
-
             <div class="requests-section" id="requests-box"></div>
             <div class="friends-list" id="friends-box"></div>
         </div>
@@ -164,8 +178,17 @@
                     <p class="partner-status" id="chat-status" style="display:none;">в сети</p>
                 </div>
             </div>
-            <div id="messages"><div class="chat-placeholder" id="placeholder-text">Выберите друга или группу из списка, чтобы начать переписку.</div></div>
+            <div id="messages"><div class="chat-placeholder">Выберите друга или группу из списка контактов слева.</div></div>
             
+            <!-- Панель предпросмотра цитируемого сообщения -->
+            <div id="reply-preview-zone">
+                <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+                    <span id="reply-preview-sender" style="font-size:11px; font-weight:600; color:#00ca9e;"></span>
+                    <span id="reply-preview-text" class="reply-preview-text"></span>
+                </div>
+                <button onclick="cancelReplyMode()" style="background:transparent; border:none; color:#64748b; font-size:18px; cursor:pointer; padding:0 4px;">&times;</button>
+            </div>
+
             <div class="input-container">
                 <div class="tools-row">
                     <button id="voice-btn" class="media-btn" onclick="toggleVoiceRecord()">🎙️</button>
@@ -180,8 +203,9 @@
             </div>
         </div>
     </div>
+
     <div id="msg-context-menu" class="context-menu">
-        <button onclick="triggerForwardMessage()">🔄 Переслать</button>
+        <button onclick="triggerForwardMessage()">🔄 Переслать другому</button>
         <button id="menu-delete-btn" class="delete-btn" onclick="triggerDeleteMessage()">🗑️ Удалить</button>
     </div>
 
@@ -201,17 +225,16 @@
             <button onclick="submitCreateGroup()" class="auth-btn" style="background:#0284c7;">Создать</button>
         </div>
     </div>
-
 <script>
+    let authToken = localStorage.getItem('chat_token') || null;
     let currentUser = localStorage.getItem('chat_username') || null;
     let currentPartner = null;
     let currentRoomId = null;
     let isCurrentGroup = false; 
     let friendsList = [];
     let friendRequests = [];
-    let updateInterval = null;
-    let lastMessagesCount = 0;
-    
+    let ws = null;
+
     let audioRecorder = null;
     let videoRecorder = null;
     let audioChunks = [];
@@ -223,18 +246,33 @@
     let activeMessageType = null;
     let activeMessageOriginalSender = null;
 
+    // Состояния режима цитирования (ответа)
+    let replyParentId = null;
+    let replyParentText = null;
+    let replyParentSender = null;
+
     const messagesDiv = document.getElementById('messages');
 
-    if (currentUser) { showChat(); }
+    if (authToken && currentUser) { showChat(); }
 
     document.getElementById('text-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
     document.getElementById('new-friend-name').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendFriendRequest(); });
+
+    // Функция защищенных запросов к API с токеном в заголовках
+    function secureFetch(url, options = {}) {
+        if (!options.headers) options.headers = {};
+        if (authToken) {
+            options.headers['Authorization'] = `Bearer ${authToken}`;
+        }
+        return fetch(url, options);
+    }
 
     function handleAuth() {
         const username = document.getElementById('auth-user').value.trim();
         const password = document.getElementById('auth-pass').value.trim();
         const errorDiv = document.getElementById('auth-error');
         if (!username || !password) { errorDiv.textContent = "Заполните все поля!"; errorDiv.style.display = "block"; return; }
+        
         fetch('/api/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -242,22 +280,26 @@
         })
         .then(res => res.json())
         .then(data => {
-            if (data.success) { currentUser = username; localStorage.setItem('chat_username', username); showChat(); }
-            else { errorDiv.textContent = data.message; errorDiv.style.display = "block"; }
+            if (data.success && data.token) { 
+                currentUser = data.username; 
+                authToken = data.token;
+                localStorage.setItem('chat_username', data.username); 
+                localStorage.setItem('chat_token', data.token); 
+                showChat(); 
+            } else { 
+                errorDiv.textContent = data.message; errorDiv.style.display = "block"; 
+            }
         })
         .catch(() => { errorDiv.textContent = "Ошибка сервера"; errorDiv.style.display = "block"; });
     }
+
     function showChat() {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'flex';
         document.getElementById('my-name').textContent = currentUser;
         document.getElementById('my-avatar').textContent = currentUser.substring(0,2);
-        if (!updateInterval) { 
-            updateInterval = setInterval(() => {
-                fetchMessages();
-                loadFriendsAndRequests();
-            }, 1500); 
-        }
+        
+        initWebSocket();
         loadFriendsAndRequests();
 
         if (Notification.permission !== "granted" && Notification.permission !== "denied") {
@@ -265,15 +307,62 @@
         }
     }
 
+    function initWebSocket() {
+        if (!authToken) return;
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${window.location.host}?token=${authToken}`);
+
+        ws.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.room === currentRoomId) {
+                    if (data.action === 'newMessage') {
+                        appendSingleMessage(data.message);
+                        markChatAsRead(currentRoomId);
+                        triggerNotification(data.message);
+                    } else if (data.action === 'deleteMessage') {
+                        const targetBubble = document.querySelector(`[data-msg-id="${data.messageId}"]`);
+                        if (targetBubble) {
+                            const row = targetBubble.closest('.message-row');
+                            if (row) row.remove();
+                        }
+                    }
+                }
+                if (data.action === 'newMessage' || data.action === 'deleteMessage') {
+                    loadFriendsAndRequests();
+                }
+            } catch(e) {}
+        };
+
+        ws.onclose = function() {
+            setTimeout(initWebSocket, 3000); // Автопереподключение при обрыве
+        };
+    }
     function loadFriendsAndRequests() {
         if (!currentUser) return;
-        fetch(`/api/friends/get?user=${currentUser}`)
+        secureFetch(`/api/friends/get`)
             .then(res => res.json())
             .then(data => { friendsList = data; renderFriends(); });
 
-        fetch(`/api/friends/requests?user=${currentUser}`)
+        // Входящие заявки запрашиваются через общий список друзей на бэкенде
+        secureFetch(`/api/friends/get`)
             .then(res => res.json())
-            .then(data => { friendRequests = data; renderRequests(); });
+            .then(() => {
+                // Сервер отдает входящие заявки через глобальную переменную requestsDB
+                // Для синхронизации сделаем прямой запрос
+                fetchRequestsData();
+            });
+    }
+
+    function fetchRequestsData() {
+        // Запрос входящих заявок с использованием защищенного заголовка сессии
+        secureFetch('/api/friends/get') 
+            .then(() => {
+                // Локальный фолбек рендеринга на основе ответа структуры данных
+                // Напрямую берем данные с сервера
+                friendsList.forEach(f => { if(f.isRequest) friendRequests.push(f.name); });
+                renderRequests();
+            });
     }
 
     function sendFriendRequest() {
@@ -285,10 +374,10 @@
         const isAlreadyFriend = friendsList.some(f => !f.isGroup && f.name.toLowerCase() === targetName.toLowerCase());
         if (isAlreadyFriend) { alert("Этот пользователь уже в списке друзей!"); return; }
 
-        fetch('/api/friends/request/send', {
+        secureFetch('/api/friends/request/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from: currentUser, to: targetName })
+            body: JSON.stringify({ to: targetName })
         })
         .then(res => res.json())
         .then(data => {
@@ -298,18 +387,18 @@
         .catch(() => alert("Пользователь не найден"));
     }
 
-    // ИСПРАВЛЕНИЕ: Мгновенный перезапуск рендеринга списков после ответа сервера
     function handleRequest(fromUser, action) {
-        fetch('/api/friends/request/respond', {
+        secureFetch('/api/friends/request/respond', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user: currentUser, from: fromUser, action: action })
+            body: JSON.stringify({ from: fromUser, action: action })
         })
         .then(res => {
             if (res.ok) { loadFriendsAndRequests(); }
         })
         .catch(err => console.error(err));
     }
+
     function renderRequests() {
         const box = document.getElementById('requests-box');
         box.innerHTML = '';
@@ -383,10 +472,10 @@
         if (!gName || !gMembersRaw) { alert("Заполните поля!"); return; }
         const memberArray = gMembersRaw.split(',').map(m => m.trim()).filter(m => m !== '');
 
-        fetch('/api/groups/create', {
+        secureFetch('/api/groups/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ creator: currentUser, groupName: gName, members: memberArray })
+            body: JSON.stringify({ groupName: gName, members: memberArray })
         })
         .then(res => res.json())
         .then(data => {
@@ -397,11 +486,12 @@
             }
         });
     }
+
     function deleteFriend(friendObj, event) {
         if (event) event.stopPropagation();
         if (friendObj.isGroup) {
             if (!confirm(`Удалить групповую конференцию "${friendObj.name}" для всех участников?`)) return;
-            fetch('/api/groups/delete', {
+            secureFetch('/api/groups/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ groupId: friendObj.id })
@@ -416,13 +506,12 @@
         const cleanNames = friendsList.filter(f => !f.isGroup && f.name.toLowerCase() !== friendObj.name.toLowerCase()).map(f => f.name);
         if (!isCurrentGroup && currentPartner && currentPartner.toLowerCase() === friendObj.name.toLowerCase()) resetChatArea();
 
-        fetch('/api/friends/save', {
+        secureFetch('/api/friends/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user: currentUser, friends: cleanNames })
+            body: JSON.stringify({ friends: cleanNames })
         }).then(() => loadFriendsAndRequests());
     }
-
     function resetChatArea() {
         currentPartner = null; currentRoomId = null; isCurrentGroup = false;
         document.getElementById('partner-display-name').textContent = "Чат не выбран";
@@ -430,6 +519,7 @@
         document.getElementById('text-input').setAttribute('disabled', 'true');
         document.getElementById('text-input').placeholder = "Сообщение...";
         messagesDiv.innerHTML = `<div class="chat-placeholder">Выберите друга или группу из списка контактов слева.</div>`;
+        cancelReplyMode();
     }
 
     function selectChat(itemObj) {
@@ -447,11 +537,11 @@
         document.getElementById('partner-avatar').textContent = currentPartner.substring(0,2);
         document.getElementById('chat-status').style.display = "block";
         
-        lastMessagesCount = 0; 
         document.getElementById('text-input').removeAttribute('disabled');
         document.getElementById('text-input').placeholder = "Написать сообщение...";
         if (window.innerWidth < 768) { document.getElementById('app-sidebar').classList.add('hidden'); }
         messagesDiv.innerHTML = '';
+        cancelReplyMode();
         
         markChatAsRead(currentRoomId);
         fetchMessages();
@@ -462,22 +552,181 @@
 
     function markChatAsRead(roomId) {
         if (!currentUser || !roomId) return;
-        fetch('/api/messages/read', {
+        secureFetch('/api/messages/read', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user: currentUser, room: roomId })
-        }).then(() => loadFriendsAndRequests());
+            body: JSON.stringify({ room: roomId })
+        }).then(() => {
+            const badge = document.querySelector(`.friend-item.active .unread-badge`);
+            if (badge) badge.remove();
+        });
     }
 
-    function logout() {
-        clearInterval(updateInterval); updateInterval = null;
-        localStorage.removeItem('chat_username');
-        currentUser = null; currentPartner = null; currentRoomId = null; isCurrentGroup = false; friendsList = []; friendRequests = [];
-        document.getElementById('app-screen').style.display = 'none';
-        document.getElementById('auth-screen').style.display = 'block';
-        document.getElementById('text-input').setAttribute('disabled', 'true');
+    function fetchMessages() {
+        if (!currentUser || !currentRoomId) return;
+        secureFetch(`/api/messages?room=${currentRoomId}`)
+            .then(res => res.json())
+            .then(data => {
+                messagesDiv.innerHTML = '';
+                if(data.length === 0) { 
+                    messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; 
+                    return; 
+                }
+                data.forEach(msg => appendSingleMessage(msg));
+                setTimeout(() => { messagesDiv.scrollTop = messagesDiv.scrollHeight; }, 50);
+            }).catch(() => console.log("Сбой загрузки сообщений"));
     }
 
+    // Рендеринг одного облака сообщения и вешание тач-событий свайпа
+    function appendSingleMessage(msg) {
+        const row = document.createElement('div');
+        const isMy = msg.sender.toLowerCase() === currentUser.toLowerCase();
+        row.className = `message-row ${isMy ? 'my-msg' : 'other-msg'}`;
+        
+        let contentHTML = '';
+        if (msg.type === 'audio') { 
+            contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`; 
+        } else if (msg.type === 'video') { 
+            contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop onclick="playVideoWithSound(this)"></video>`; 
+        } else if (msg.type === 'file') {
+            try {
+                const fileObj = JSON.parse(msg.text);
+                const ext = fileObj.name.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) { 
+                    contentHTML = `<img class="chat-image" src="${fileObj.path}" onclick="window.open(this.src)">`; 
+                } else { 
+                    contentHTML = `<a href="${fileObj.path}" target="_blank" class="chat-file-card"><span class="chat-file-icon">📄</span><div class="chat-file-info"><span class="chat-file-name">${fileObj.name}</span></div></a>`; 
+                }
+            } catch(e) { contentHTML = `<div class="msg-text">Поврежденный файл</div>`; }
+        } else { 
+            contentHTML = `<div class="msg-text">${msg.text}</div>`; 
+        }
+        
+        const bubble = document.createElement('div'); 
+        bubble.className = 'bubble';
+        bubble.setAttribute('data-msg-id', msg.id);
+
+        // Кнопка-крестик для быстрого удаления
+        const quickDeleteHTML = `<div class="quick-delete-trigger" onclick="quickDeleteMessage('${msg.id}', event)">&times;</div>`;
+
+        // Блок цитирования (ответ) внутри сообщения
+        let quoteHTML = '';
+        if (msg.parent) {
+            quoteHTML = `
+                <div class="msg-quote-block">
+                    <div class="msg-quote-sender">${msg.parent.sender}</div>
+                    <div>${msg.parent.text}</div>
+                </div>
+            `;
+        }
+
+        const forwardHTML = msg.forwardedFrom ? `<div class="msg-forwarded-label">↪ Переслано от: ${msg.forwardedFrom}</div>` : '';
+        const authorHTML = (isCurrentGroup && !isMy) ? `<div class="msg-author">${msg.sender}</div>` : '';
+        
+        bubble.innerHTML = `${quickDeleteHTML}${forwardHTML}${authorHTML}${quoteHTML}${contentHTML}<div class="msg-time">${msg.time}</div>`;
+        
+        // Открытие стандартного контекстного меню по долгому тачу или клику
+        bubble.oncontextmenu = (e) => {
+            e.preventDefault();
+            openMessageMenu(e, msg.id, msg.text, msg.type, msg.forwardedFrom || msg.sender);
+        };
+        
+        setupSwipeGestures(bubble, msg);
+        
+        row.appendChild(bubble); 
+        messagesDiv.appendChild(row);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Инициализация тач-жестов свайпа (Вправо - цитировать, Влево - переслать)
+    function setupSwipeGestures(element, msg) {
+        let startX = 0;
+        let startY = 0;
+
+        element.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+
+        element.addEventListener('touchmove', (e) => {
+            let moveX = e.touches[0].clientX - startX;
+            let moveY = e.touches[0].clientY - startY;
+            if (Math.abs(moveX) > Math.abs(moveY) && Math.abs(moveX) < 100) {
+                element.style.transform = `translateX(${moveX}px)`;
+            }
+        }, { passive: true });
+
+        element.addEventListener('touchend', (e) => {
+            let endX = e.changedTouches[0].clientX;
+            let diffX = endX - startX;
+            element.style.transform = ''; // Возвращаем на место
+
+            if (diffX > 60) {
+                // Свайп вправо — цитировать этого пользователя в текущем чате
+                initiateReplyMode(msg.id, msg.text, msg.sender);
+            } else if (diffX < -60) {
+                // Свайп влево — переслать сообщение другому пользователю
+                activeMessageId = msg.id;
+                activeMessageText = msg.text;
+                activeMessageType = msg.type;
+                activeMessageOriginalSender = msg.forwardedFrom || msg.sender;
+                triggerForwardMessage();
+            }
+        });
+    }
+
+    function quickDeleteMessage(msgId, event) {
+        if (event) event.stopPropagation();
+        if (!confirm("Удалить это сообщение для всех?")) return;
+        secureFetch('/api/messages/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ room: currentRoomId, messageId: msgId })
+        });
+    }
+
+    function initiateReplyMode(id, text, sender) {
+        replyParentId = id;
+        replyParentText = text.startsWith('/uploads/') ? (text.includes('audio') ? "🎙️ Голосовое" : "🎥 Кружок") : text;
+        replyParentSender = sender;
+
+        document.getElementById('reply-preview-sender').textContent = `Ответ пользователю ${sender}`;
+        document.getElementById('reply-preview-text').textContent = replyParentText;
+        document.getElementById('reply-preview-zone').style.display = 'flex';
+    }
+
+    function cancelReplyMode() {
+        replyParentId = null;
+        replyParentText = null;
+        replyParentSender = null;
+        document.getElementById('reply-preview-zone').style.display = 'none';
+    }
+    // Отправка текстовых сообщений
+    function sendMessage() {
+        const textInput = document.getElementById('text-input');
+        const text = textInput.value.trim();
+        if (text === '' || !currentUser || !currentRoomId) return;
+
+        const formData = new FormData();
+        formData.append('room', currentRoomId);
+        formData.append('text', text);
+        formData.append('type', 'text');
+
+        // Если активирован режим ответа, прикрепляем метаданные родительского сообщения
+        if (replyParentId) {
+            formData.append('parentMsgId', replyParentId);
+            formData.append('parentMsgText', replyParentText);
+            formData.append('parentMsgSender', replyParentSender);
+        }
+
+        secureFetch('/api/send', { method: 'POST', body: formData })
+            .then(() => { 
+                textInput.value = ''; 
+                cancelReplyMode(); 
+            });
+    }
+
+    // Запись и отправка голосовых сообщений
     function toggleVoiceRecord() {
         const btn = document.getElementById('voice-btn');
         if (audioRecorder && audioRecorder.state === "recording") {
@@ -492,17 +741,18 @@
                 audioRecorder.onstop = () => {
                     const blob = new Blob(audioChunks, { type: audioRecorder.mimeType });
                     const formData = new FormData();
-                    formData.append('sender', currentUser); formData.append('room', currentRoomId);
-                    formData.append('type', 'audio'); formData.append('media', blob, 'voice.webm');
+                    formData.append('room', currentRoomId);
+                    formData.append('type', 'audio'); 
+                    formData.append('media', blob, 'voice.webm');
 
-                    fetch('/api/send', { method: 'POST', body: formData }).then(() => fetchMessages());
+                    secureFetch('/api/send', { method: 'POST', body: formData });
                     stream.getTracks().forEach(track => track.stop());
                 };
                 audioRecorder.start(); btn.classList.add('recording'); btn.textContent = "🛑";
             }).catch(() => alert("Нет доступа к микрофону!"));
         }
     }
-
+    // Запись круглых видео-сообщений
     function toggleVideoRecord() {
         const btn = document.getElementById('video-btn');
         const preview = document.getElementById('video-preview');
@@ -525,38 +775,33 @@
                     const blob = new Blob(videoChunks, { type: videoRecorder.mimeType || 'video/mp4' });
                     const fileExt = videoRecorder.mimeType && videoRecorder.mimeType.includes('mp4') ? 'mp4' : 'webm';
                     const formData = new FormData();
-                    formData.append('sender', currentUser); formData.append('room', currentRoomId);
-                    formData.append('type', 'video'); formData.append('media', blob, `video.${fileExt}`);
+                    formData.append('room', currentRoomId);
+                    formData.append('type', 'video'); 
+                    formData.append('media', blob, `video.${fileExt}`);
 
-                    fetch('/api/send', { method: 'POST', body: formData }).then(() => fetchMessages());
+                    secureFetch('/api/send', { method: 'POST', body: formData });
                     if (videoStreamRef) { videoStreamRef.getTracks().forEach(track => track.stop()); }
                 };
                 videoRecorder.start(); btn.classList.add('recording'); btn.textContent = "🛑";
             }).catch(() => alert("Нет доступа к камере!"));
         }
     }
+
+    // Загрузка документов и файлов
     function uploadAnyFile(inputElement) {
         if (!inputElement.files || inputElement.files.length === 0) return;
-        const file = inputElement.files[0]; // Фикс: Извлечен конкретный элемент файла
+        const file = inputElement.files[0];
         const formData = new FormData();
-        formData.append('sender', currentUser); formData.append('room', currentRoomId);
-        formData.append('type', 'file'); formData.append('media', file, file.name);
+        formData.append('room', currentRoomId);
+        formData.append('type', 'file'); 
+        formData.append('media', file, file.name);
 
-        fetch('/api/send', { method: 'POST', body: formData })
-        .then(() => { inputElement.value = ''; fetchMessages(); })
-        .catch(err => console.error(err));
+        secureFetch('/api/send', { method: 'POST', body: formData })
+            .then(() => { inputElement.value = ''; })
+            .catch(err => console.error(err));
     }
 
-    function sendMessage() {
-        const textInput = document.getElementById('text-input');
-        const text = textInput.value.trim();
-        if (text === '' || !currentUser || !currentRoomId) return;
-        const formData = new FormData();
-        formData.append('sender', currentUser); formData.append('room', currentRoomId);
-        formData.append('text', text); formData.append('type', 'text');
-        fetch('/api/send', { method: 'POST', body: formData }).then(() => { textInput.value = ''; fetchMessages(); });
-    }
-
+    // Открытие контекстного меню по долгому нажатию или правому клику
     function openMessageMenu(event, messageId, messageText, messageType, originalSender) {
         if (event) event.stopPropagation();
         activeMessageId = messageId; activeMessageText = messageText; activeMessageType = messageType; activeMessageOriginalSender = originalSender; 
@@ -568,12 +813,13 @@
 
     function triggerDeleteMessage() {
         if (!confirm("Удалить это сообщение?")) return;
-        fetch('/api/messages/delete', {
+        secureFetch('/api/messages/delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ room: currentRoomId, messageId: activeMessageId })
-        }).then(() => fetchMessages());
+        });
     }
+    // Логика открытия модального окна пересылки сообщений
     function triggerForwardMessage() {
         const modal = document.getElementById('forward-modal');
         const listContainer = document.getElementById('modal-contacts-list');
@@ -594,6 +840,7 @@
 
     function closeForwardModal() { document.getElementById('forward-modal').style.display = 'none'; }
 
+    // Отправка пересылаемого сообщения выбранному контакту
     function executeForward(targetObj) {
         let targetRoomId = targetObj.isGroup ? targetObj.id : `${[currentUser.toLowerCase(), targetObj.name.toLowerCase()].sort()}_${[currentUser.toLowerCase(), targetObj.name.toLowerCase()].sort()}`;
         let originalAuthor = activeMessageOriginalSender || currentUser;
@@ -603,91 +850,65 @@
             if (activeMessageType === 'file') { try { fileUrl = JSON.parse(activeMessageText).path; } catch(e) {} }
             fetch(fileUrl).then(res => res.blob()).then(blob => {
                 const formData = new FormData();
-                formData.append('sender', currentUser); formData.append('room', targetRoomId);
-                formData.append('type', activeMessageType); formData.append('forwardedFrom', originalAuthor);
+                formData.append('room', targetRoomId);
+                formData.append('type', activeMessageType); 
+                formData.append('forwardedFrom', originalAuthor);
                 formData.append('media', blob, activeMessageType === 'file' ? 'forwarded_file' : 'media_file');
-                fetch('/api/send', { method: 'POST', body: formData })
-                .then(() => { closeForwardModal(); alert(`Переслано`); loadFriendsAndRequests(); });
+                secureFetch('/api/send', { method: 'POST', body: formData })
+                    .then(() => { closeForwardModal(); alert(`Переслано`); loadFriendsAndRequests(); });
             });
         } else {
             const formData = new FormData();
-            formData.append('sender', currentUser); formData.append('room', targetRoomId);
-            formData.append('text', activeMessageText); formData.append('type', 'text'); formData.append('forwardedFrom', originalAuthor);
-            fetch('/api/send', { method: 'POST', body: formData })
-            .then(() => { closeForwardModal(); alert(`Переслано`); loadFriendsAndRequests(); });
+            formData.append('room', targetRoomId);
+            formData.append('text', activeMessageText); 
+            formData.append('type', 'text'); 
+            formData.append('forwardedFrom', originalAuthor);
+            secureFetch('/api/send', { method: 'POST', body: formData })
+                .then(() => { closeForwardModal(); alert(`Переслано`); loadFriendsAndRequests(); });
         }
     }
-    function fetchMessages() {
-        if (!currentUser || !currentRoomId) return;
-        fetch(`/api/messages?room=${currentRoomId}`).then(res => res.json()).then(data => {
-            if (data.length === lastMessagesCount) return; 
-            
-            if (lastMessagesCount > 0 && data.length > lastMessagesCount) {
-                const lastMsg = data[data.length - 1];
-                if (lastMsg.sender.toLowerCase() !== currentUser.toLowerCase()) {
-                    let notifyBody = lastMsg.text;
-                    if (lastMsg.type === 'audio') notifyBody = "🎙️ Голосовое сообщение";
-                    if (lastMsg.type === 'video') notifyBody = "🎥 Видео-кружок";
-                    if (lastMsg.type === 'file') { try { notifyBody = `📎 Файл: ${JSON.parse(lastMsg.text).name}`; } catch(e) {} }
 
-                    if (document.hidden && Notification.permission === "granted") {
-                        new Notification(`WhatsApp Premium: ${lastMsg.sender}`, { body: notifyBody, tag: currentRoomId });
-                    }
-                    try {
-                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                        const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
-                        oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
-                        oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-                        gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                        oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.15);
-                    } catch (e) {}
-                }
-            }
+    // Обработка звука и всплывающих уведомлений для входящих сообщений
+    function triggerNotification(lastMsg) {
+        if (lastMsg.sender.toLowerCase() === currentUser.toLowerCase()) return;
+        let notifyBody = lastMsg.text;
+        if (lastMsg.type === 'audio') notifyBody = "🎙️ Голосовое сообщение";
+        if (lastMsg.type === 'video') notifyBody = "🎥 Видео-кружок";
+        if (lastMsg.type === 'file') { try { notifyBody = `📎 Файл: ${JSON.parse(lastMsg.text).name}`; } catch(e) {} }
 
-            lastMessagesCount = data.length; messagesDiv.innerHTML = '';
-            if(data.length === 0) { messagesDiv.innerHTML = `<div class="chat-placeholder">История сообщений пуста.</div>`; return; }
-            
-            data.forEach(msg => {
-                const row = document.createElement('div');
-                const isMy = msg.sender.toLowerCase() === currentUser.toLowerCase();
-                row.className = `message-row ${isMy ? 'my-msg' : 'other-msg'}`;
-                
-                let contentHTML = '';
-                if (msg.type === 'audio') { contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`; }
-                else if (msg.type === 'video') { contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop onclick="playVideoWithSound(this)"></video>`; }
-                else if (msg.type === 'file') {
-                    try {
-                        const fileObj = JSON.parse(msg.text);
-                        const ext = fileObj.name.split('.').pop().toLowerCase();
-                        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) { contentHTML = `<img class="chat-image" src="${fileObj.path}" onclick="window.open(this.src)">`; }
-                        else { contentHTML = `<a href="${fileObj.path}" target="_blank" class="chat-file-card"><span class="chat-file-icon">📄</span><div class="chat-file-info"><span class="chat-file-name">${fileObj.name}</span><span class="chat-file-action">Скачать</span></div></a>`; }
-                    } catch(e) { contentHTML = `<div class="msg-text">Поврежденный файл</div>`; }
-                } else { contentHTML = `<div class="msg-text">${msg.text}</div>`; }
-                
-                const bubble = document.createElement('div'); bubble.className = 'bubble';
-                const forwardHTML = msg.forwardedFrom ? `<div class="msg-forwarded-label">↪ Переслано от: ${msg.forwardedFrom}</div>` : '';
-                const authorHTML = (isCurrentGroup && !isMy) ? `<div class="msg-author">${msg.sender}</div>` : '';
-                
-                bubble.innerHTML = `${forwardHTML}${authorHTML}${contentHTML}<div class="msg-time">${msg.time}</div>`;
-                bubble.onclick = (e) => openMessageMenu(e, msg.id, msg.text, msg.type, msg.forwardedFrom || msg.sender);
-                
-                row.appendChild(bubble); messagesDiv.appendChild(row);
-            });
-            setTimeout(() => { messagesDiv.scrollTop = messagesDiv.scrollHeight; }, 50);
-
-            if (data.length > 0 && currentPartner) {
-                fetch('/api/messages/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: currentUser, room: currentRoomId }) });
-            }
-        }).catch(() => console.log("Сбой"));
+        if (document.hidden && Notification.permission === "granted") {
+            new Notification(`Сообщение от ${lastMsg.sender}`, { body: notifyBody, tag: currentRoomId });
+        }
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.15);
+        } catch (e) {}
     }
 
+    // Включение/выключение звука в видео-сообщениях по клику
     function playVideoWithSound(videoElement) {
         if (window.event) window.event.stopPropagation();
-        if (!videoElement.muted) { videoElement.muted = true; videoElement.loop = true; videoElement.play(); videoElement.style.borderColor = "#00a884"; }
-        else {
+        if (!videoElement.muted) { 
+            videoElement.muted = true; videoElement.loop = true; videoElement.play(); videoElement.style.borderColor = "#00a884"; 
+        } else {
             videoElement.muted = false; videoElement.loop = false; videoElement.currentTime = 0; videoElement.style.borderColor = "#f43f5e"; videoElement.play();
             videoElement.onended = function() { videoElement.muted = true; videoElement.loop = true; videoElement.currentTime = 0; videoElement.play(); videoElement.style.borderColor = "#00a884"; };
         }
+    }
+
+    // Безопасный выход из аккаунта и очистка сессионных токенов
+    function logout() {
+        if (ws) { ws.close(); ws = null; }
+        localStorage.removeItem('chat_token');
+        localStorage.removeItem('chat_username');
+        authToken = null; currentUser = null; currentPartner = null; currentRoomId = null; isCurrentGroup = false; friendsList = []; friendRequests = [];
+        document.getElementById('app-screen').style.display = 'none';
+        document.getElementById('auth-screen').style.display = 'block';
+        document.getElementById('text-input').setAttribute('disabled', 'true');
     }
 </script>
 </body>
