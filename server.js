@@ -1,4 +1,6 @@
 // server.js (Часть 1: Конфигурация и Хранилище данных)
+// server.js — ПРОВЕРЬТЕ НАЛИЧИЕ ЭТОЙ СТРОКИ В НАЧАЛЕ ФАЙЛА:
+const server = http.createServer(); 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -33,6 +35,8 @@ function writeJSON(filePath, data) {
     }
 }
 
+// ... (подключение файлов JSON и объявление баз данных из Окон 1 и 2)
+
 // Загрузка баз данных при старте
 let usersDB = readJSON(USERS_FILE, {});
 let roomsDB = readJSON(HISTORY_FILE, {});
@@ -40,14 +44,15 @@ let friendsDB = readJSON(FRIENDS_FILE, {});
 let groupsDB = readJSON(GROUPS_FILE, {});
 let requestsDB = readJSON(REQUESTS_FILE, {});
 
-// Сессионная база данных в памяти (Токены авторизации и статусы прочтения)
-// Сохраняется на диск при изменениях, решая проблему обнуления unread
 const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
 let sessionsDB = readJSON(SESSIONS_FILE, { tokens: {}, lastRead: {} });
 
-// Хранилище активных WebSocket-соединений (ключ: username.toLowerCase())
 const clients = new Map();
-// server.js (Часть 2: Авторизация и Генерация сессий)
+
+// === ДОБАВЬТЕ ЭТОТ БЛОК, ЕСЛИ ЕГО НЕТ ===
+const server = http.createServer();
+// =======================================
+
 
 // Простая функция генерации защищенных сессионных токенов
 function generateToken() {
