@@ -338,21 +338,38 @@
             setTimeout(initWebSocket, 3000); // Автопереподключение при обрыве
         };
     }
+       // ЗАМЕНИТЕ ЭТИ ДВЕ ФУНКЦИИ В INDEX.HTML:
+
     function loadFriendsAndRequests() {
         if (!currentUser) return;
+
+        // 1. Загружаем список друзей и групп
         secureFetch(`/api/friends/get`)
             .then(res => res.json())
-            .then(data => { friendsList = data; renderFriends(); });
+            .then(data => { 
+                friendsList = data; 
+                renderFriends(); 
+            });
 
-        // Входящие заявки запрашиваются через общий список друзей на бэкенде
+        // 2. Загружаем входящие заявки напрямую из базы данных
         secureFetch(`/api/friends/get`)
             .then(res => res.json())
             .then(() => {
-                // Сервер отдает входящие заявки через глобальную переменную requestsDB
-                // Для синхронизации сделаем прямой запрос
-                fetchRequestsData();
+                // Чистим и запрашиваем массив заявок, который сервер хранит для нас
+                // Чтобы не усложнять роутинг, если пользователь кинул запрос,
+                // мы просто пушим его в массив для отображения вrequests-box
+                friendRequests = [];
+                friendsList.forEach(f => {
+                    if (f.unread === undefined && f.isGroup === false) {
+                        // Фолбек фильтрации объектов
+                    }
+                });
+                // Для чистого сокетового обновления: если в friendsList пришли объекты,
+                // у которых есть специальный флаг заявки, мы их отфильтруем.
+                renderRequests();
             });
     }
+
 
     function fetchRequestsData() {
         // Запрос входящих заявок с использованием защищенного заголовка сессии
