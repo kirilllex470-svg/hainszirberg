@@ -49,9 +49,6 @@ let sessionsDB = readJSON(SESSIONS_FILE, { tokens: {}, lastRead: {} });
 
 const clients = new Map();
 
-// === ДОБАВЬТЕ ЭТОТ БЛОК, ЕСЛИ ЕГО НЕТ ===
-const server = http.createServer();
-// =======================================
 
 
 // Простая функция генерации защищенных сессионных токенов
