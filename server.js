@@ -122,14 +122,29 @@ function authenticateToken(req) {
 }
 
 // Запрос списка друзей и подсчет непрочитанных
+// Замените эту функцию в server.js
+
 function handleGetFriendsRoute(req, res, username) {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
     const myLower = username.toLowerCase();
     const myFriends = friendsDB[myLower] || [];
     const myReads = sessionsDB.lastRead[myLower] || {};
+    const myIncomingRequests = requestsDB[myLower] || []; // Достаем входящие заявки
     const listData = [];
 
-    // 1. Приватные чаты
+    // 1. Сначала пушим в список входящие заявки, чтобы фронтенд их отрендерил
+    myIncomingRequests.forEach(fromUser => {
+        listData.push({
+            name: fromUser,
+            lastMessage: "Хочет добавиться в друзья",
+            time: "",
+            unread: 0,
+            isGroup: false,
+            isRequest: true // Специальный флаг для фронтенда
+        });
+    });
+
+    // 2. Пушим обычные приватные чаты с друзьями
     myFriends.forEach(friendName => {
         const friendLower = friendName.toLowerCase();
         const sortedRoom = [myLower, friendLower].sort();
@@ -143,9 +158,9 @@ function handleGetFriendsRoute(req, res, username) {
         
         if (roomMessages.length > 0) {
             const lastMsg = roomMessages[roomMessages.length - 1];
-            if (lastMsg.type === 'audio') lastMsgText = "🎙️ Голосовое сообщение";
-            else if (lastMsg.type === 'video') lastMsgText = "🎥 Видео-кружок";
-            else if (lastMsg.type === 'file') lastMsgText = "📎 Файл / Документ";
+            if (lastMsg.type === 'audio') lastMsgText = "🎙️ Голосовое";
+            else if (lastMsg.type === 'video') lastMsgText = "🎥 Кружок";
+            else if (lastMsg.type === 'file') lastMsgText = "📎 Файл";
             else lastMsgText = lastMsg.text || "";
             lastMsgTime = lastMsg.time || "";
             
@@ -155,10 +170,10 @@ function handleGetFriendsRoute(req, res, username) {
                 }
             });
         }
-        listData.push({ name: friendName, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: false });
+        listData.push({ name: friendName, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: false, isRequest: false });
     });
 
-    // 2. Конференции
+    // 3. Пушим конференции
     Object.keys(groupsDB).forEach(groupId => {
         const group = groupsDB[groupId];
         if (group.members.some(m => m.toLowerCase() === myLower)) {
@@ -182,12 +197,13 @@ function handleGetFriendsRoute(req, res, username) {
                     }
                 });
             }
-            listData.push({ id: groupId, name: group.name, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: true });
+            listData.push({ id: groupId, name: group.name, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: true, isRequest: false });
         }
     });
 
     return res.end(JSON.stringify(listData));
 }
+
 
 // Отправка запроса в друзья
 function handleSendFriendRequestRoute(req, res, username) {
