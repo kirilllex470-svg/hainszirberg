@@ -1,12 +1,13 @@
-// server.js (Часть 1: Конфигурация и Хранилище данных)
-// server.js — ПРОВЕРЬТЕ НАЛИЧИЕ ЭТОЙ СТРОКИ В НАЧАЛЕ ФАЙЛА:
-const server = http.createServer(); 
+// server.js (САМЫЙ ВЕРХ ФАЙЛА)
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// Файлы локальной базы данных JSON
+// ВОТ ТЕПЕРЬ СОЗДАЕМ СЕРВЕР (СТРОГО ОДИН РАЗ НА ВЕСЬ ФАЙЛ)
+const server = http.createServer();
+
+// Дальше оставляем ваш старый код без изменений...
 const USERS_FILE = path.join(__dirname, 'users.json');
 const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
