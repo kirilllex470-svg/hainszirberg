@@ -1,9 +1,16 @@
 {
-  "name": "node-messenger",
+  "name": "darknet-zone-chat",
   "version": "1.0.0",
+  "description": "Premium Chat",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "dependencies": {}
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.7.5"
+  }
 }
