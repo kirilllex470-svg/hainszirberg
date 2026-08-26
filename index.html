@@ -338,36 +338,62 @@
             setTimeout(initWebSocket, 3000); // Автопереподключение при обрыве
         };
     }
-       // ЗАМЕНИТЕ ЭТИ ДВЕ ФУНКЦИИ В INDEX.HTML:
+       // Замените эти функции в вашем index.html
 
     function loadFriendsAndRequests() {
         if (!currentUser) return;
-
-        // 1. Загружаем список друзей и групп
         secureFetch(`/api/friends/get`)
             .then(res => res.json())
             .then(data => { 
-                friendsList = data; 
+                // Разделяем один входящий массив на заявки и список чатов
+                friendRequests = data.filter(item => item.isRequest).map(item => item.name);
+                friendsList = data.filter(item => !item.isRequest);
+                
+                renderRequests(); 
                 renderFriends(); 
-            });
+            }).catch(err => console.error("Ошибка обновления списков:", err));
+    }
 
-        // 2. Загружаем входящие заявки напрямую из базы данных
-        secureFetch(`/api/friends/get`)
-            .then(res => res.json())
-            .then(() => {
-                // Чистим и запрашиваем массив заявок, который сервер хранит для нас
-                // Чтобы не усложнять роутинг, если пользователь кинул запрос,
-                // мы просто пушим его в массив для отображения вrequests-box
-                friendRequests = [];
-                friendsList.forEach(f => {
-                    if (f.unread === undefined && f.isGroup === false) {
-                        // Фолбек фильтрации объектов
-                    }
-                });
-                // Для чистого сокетового обновления: если в friendsList пришли объекты,
-                // у которых есть специальный флаг заявки, мы их отфильтруем.
-                renderRequests();
-            });
+    function renderFriends() {
+        const box = document.getElementById('friends-box');
+        box.innerHTML = '';
+        if (friendsList.length === 0) { 
+            box.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b; font-size:13px;">Список контактов пуст</div>`; 
+            return; 
+        }
+        
+        friendsList.forEach(friend => {
+            let activeId = friend.isGroup ? friend.id : `${[currentUser.toLowerCase(), friend.name.toLowerCase()].sort()}_${[currentUser.toLowerCase(), friend.name.toLowerCase()].sort()}`;
+            const isActive = currentRoomId && currentRoomId === activeId;
+            const item = document.createElement('div');
+            item.className = `friend-item ${isActive ? 'active' : ''}`;
+            item.onclick = () => selectChat(friend);
+            
+            const badgeHTML = (friend.unread > 0 && !isActive) ? `<div class="unread-badge">${friend.unread}</div>` : '';
+            const timeHTML = friend.time ? `<div class="friend-time-label">${friend.time}</div>` : '';
+            const displayName = friend.isGroup ? `👥 ${friend.name}` : friend.name;
+            
+            const friendDataEscaped = JSON.stringify(friend).replace(/"/g, '&quot;');
+            const delBtnHTML = `<button class="delete-friend-btn" onclick="deleteFriend(${friendDataEscaped}, event)">&times;</button>`;
+            
+            item.innerHTML = `
+                <div class="friend-info">
+                    <div class="avatar" style="width:36px; height:36px; font-size:13px; background:rgba(255,255,255,0.05); color:#00ca9e; border:1px solid rgba(255,255,255,0.05); border-radius:10px;">
+                        ${friend.name.substring(0,2)}
+                    </div>
+                    <div class="friend-meta">
+                        <div class="friend-name">${displayName}</div>
+                        <div class="friend-last-msg">${friend.lastMessage}</div>
+                    </div>
+                    <div class="friend-status-box">
+                        ${timeHTML}
+                        ${badgeHTML}
+                    </div>
+                </div>
+                ${delBtnHTML}
+            `;
+            box.appendChild(item);
+        });
     }
 
 
