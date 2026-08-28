@@ -402,15 +402,19 @@ const server = http.createServer((req, res) => {
             res.writeHead(400); return res.end('Ожидался FormData');
         }
         
+        // ИСПРАВЛЕНИЕ: Правильный поиск boundary
         const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
         const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
+        
         if (!boundary) { res.writeHead(400); return res.end('Не найден boundary'); }
 
         let chunks = [];
         req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
             const buffer = Buffer.concat(chunks);
-            const bufferStr = buffer.toString('binary');
+            // Используем latin1 (binary) для сохранения бинарных данных видео/фото
+            const bufferStr = buffer.toString('latin1'); 
+            
             const parts = bufferStr.split('--' + boundary);
             let fields = {};
             let fileBuffer = null;
@@ -421,27 +425,31 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const nameMatch = part.match(/name="([^"]+)"/);
                     if (!nameMatch) continue;
-                    const name = nameMatch[1];
+                    const name = nameMatch[1]; // Берем первую группу захвата
 
                     if (part.includes('filename="')) {
                         const filenameMatch = part.match(/filename="([^"]+)"/);
                         if (filenameMatch) {
-                            originalFileName = filenameMatch[1];
+                            originalFileName = filenameMatch[1]; // Берем имя файла
                             if (originalFileName.includes('.')) {
                                 const splitName = originalFileName.split('.');
                                 fileExt = splitName[splitName.length - 1];
                             }
                         }
                         const headerEnd = part.indexOf('\r\n\r\n') + 4;
-                        const fileContentBinary = part.substring(headerEnd, part.length - 2);
-                        fileBuffer = Buffer.from(fileContentBinary, 'binary');
+                        // Обрезаем \r\n в конце
+                        const fileContentBinary = part.substring(headerEnd, part.length - 2); 
+                        fileBuffer = Buffer.from(fileContentBinary, 'latin1');
                     } else {
                         const headerEnd = part.indexOf('\r\n\r\n') + 4;
                         const value = part.substring(headerEnd, part.length - 2).trim();
-                        fields[name] = Buffer.from(value, 'binary').toString('utf-8');
+                        // Декодируем текст сообщения из utf-8 корректно
+                        fields[name] = Buffer.from(value, 'latin1').toString('utf-8');
                     }
                 }
             }
+            
+            // ... (Дальше код сохранения остается прежним)
             const { sender, room, type, text, forwardedFrom, quoteId, quoteText, quoteSender } = fields;
             if (sender && room) {
                 let finalContent = text || '';
@@ -474,12 +482,9 @@ const server = http.createServer((req, res) => {
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
 
-                // Вызов триггера пуша: будит телефон и шлёт пуш в шторку
                 try {
                     triggerPushNotifications(room, sender, finalContent, type || 'text');
-                } catch(e) {
-                    console.error("Ошибка отложенного пуша:", e.message);
-                }
+                } catch(e) { console.error(e); }
 
                 res.writeHead(200); return res.end('OK');
             }
@@ -487,6 +492,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
 
     // ЗАМЕНИТЕ ЭТОТ БЛОК В КОНЦЕ server.js:
     if (req.url.startsWith('/uploads/')) {
