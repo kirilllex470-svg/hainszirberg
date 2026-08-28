@@ -59,59 +59,26 @@
         .partner-status { color: #00ca9e; font-size: 12px; }
         #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(10, 15, 30, 0.3); position: relative; }
         .chat-placeholder { margin: auto; background: rgba(30, 41, 59, 0.8); padding: 16px 24px; border-radius: 16px; color: #94a3b8; font-size: 14px; text-align: center; max-width: 85%; border: 1px solid rgba(255,255,255,0.05); }
-        .message-row { 
-    display: flex; 
-    width: 100%; 
-    position: relative; 
-    align-items: center; 
-    overflow: visible; 
-}
+        .message-row { display: flex; width: 100%; position: relative; align-items: center; overflow: visible; }
         .message-row.my-msg { justify-content: flex-end; }
         .message-row.other-msg { justify-content: flex-start; }
+
+        /* Контейнер свайпа с поддержкой адаптивности flex-контейнеров на мобильных */
+        .swipe-container { display: flex; align-items: center; width: auto; max-width: 75%; min-width: 0; flex-shrink: 1; position: relative; transition: transform 0.2s ease-out; will-change: transform; user-select: none; }
+        .my-msg .swipe-container { justify-content: flex-end; }
         
-        /* Container swipe with return animation */
-.swipe-container { 
-    display: flex; 
-    align-items: center; 
-    width: auto; 
-    max-width: 75%; 
-    min-width: 0; /* Разрешает флекс-элементу корректно сжиматься и не ломать текст */
-    flex-grow: 0; 
-    position: relative; 
-    transition: transform 0.2s ease-out; 
-    will-change: transform; 
-    user-select: none; 
-}
-.my-msg .swipe-container { justify-content: flex-end; }
-        
-        /* Swipe indicators behind messages */
         .swipe-indicator { position: absolute; top: 50%; transform: translateY(-50%); font-size: 18px; opacity: 0; transition: opacity 0.1s; pointer-events: none; color: #00ca9e; }
         .swipe-indicator.left-indicator { left: -35px; }
         .swipe-indicator.right-indicator { right: -35px; }
 
-        /* Bubble styles - fixed text sizing and padding constraint */
-        .bubble { 
-    padding: 10px 14px; 
-    border-radius: 16px; 
-    font-size: 15px; 
-    color: #f1f5f9; 
-    position: relative; 
-    
-    /* Эти свойства заставят текст ложиться ровными строками на телефоне */
-    width: fit-content; 
-    word-break: normal; 
-    overflow-wrap: break-word; /* Безопасный перенос длинных слов */
-    white-space: normal;       /* Запрещаем мобильным браузерам схлопывать текст в столбик */
-    -webkit-tap-highlight-color: transparent; 
-}
-        .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; padding-right: 28px; }
-        .other-msg .bubble { background: #1e293b; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); padding-right: 28px; }
+        /* Обновленные баблы: блокируют схлопывание в столбик, корректно расширяются и переносят длинные слова */
+        .bubble { padding: 10px 14px; border-radius: 16px; font-size: 15px; color: #f1f5f9; position: relative; overflow-wrap: break-word; word-wrap: break-word; word-break: normal; white-space: normal; -webkit-tap-highlight-color: transparent; min-width: 60px; width: fit-content; display: block; padding-right: 36px; }
+        .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; }
+        .other-msg .bubble { background: #1e293b; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
         
-        /* Inline message delete button */
         .msg-del-inline-btn { position: absolute; right: 8px; top: 8px; background: transparent; border: none; color: rgba(255,255,255,0.3); font-size: 14px; cursor: pointer; line-height: 1; padding: 2px; z-index: 5; transition: color 0.2s; }
         .msg-del-inline-btn:hover { color: #f43f5e; }
 
-        /* Quote block layout inside bubble - optimized to truncate cleanly on 1 line */
         .msg-quote-block { background: rgba(0, 0, 0, 0.2); border-left: 3px solid #00ca9e; padding: 6px 10px; border-radius: 4px; margin-bottom: 6px; font-size: 13px; color: #cbd5e1; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
         .msg-quote-author { font-weight: bold; color: #38bdf8; margin-bottom: 2px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .msg-author { font-size: 12px; font-weight: 600; color: #38bdf8; padding-bottom: 3px; }
@@ -125,7 +92,6 @@
         .chat-file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #00ca9e; }
         .chat-file-action { font-size: 11px; color: #94a3b8; margin-top: 1px; }
 
-        /* Input area configuration and reply header preview bars */
         .input-container { background: #111827; height: auto; display: flex; flex-direction: column; padding: 12px 15px; gap: 10px; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
         .reply-preview-bar { display: none; background: rgba(30, 41, 59, 0.6); padding: 8px 12px; border-left: 4px solid #00ca9e; border-radius: 6px; align-items: center; justify-content: space-between; font-size: 13px; color: #e2e8f0; }
         .reply-preview-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 10px; }
@@ -136,6 +102,15 @@
         #send-btn { background: #00a884; border: none; color: white; height: 46px; padding: 0 16px; border-radius: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; font-size: 14px; }
         .media-btn { background: #1f2937; border: 1px solid rgba(255,255,255,0.05); color: #00ca9e; width: 42px; height: 42px; border-radius: 12px; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px; flex-shrink: 0; }
         .media-btn.recording { background: #f43f5e; color: white; animation: pulse 1s infinite; }
+        @media (max-width: 767px) {
+            .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; height: 100%; z-index: 10; }
+            .sidebar.hidden { transform: translateX(-100%); }
+            .chat-area { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; z-index: 4; }
+            .back-btn { display: block; }
+            .swipe-container { max-width: 85%; width: auto; }
+            .bubble { width: fit-content; max-width: 100%; }
+            .video-round { width: 260px; height: 260px; }
+        }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         .msg-text { color: #f8fafc !important; font-size: 15px; line-height: 1.4; display: block; padding: 2px 0; }
         .msg-time { font-size: 11px; color: rgba(255, 255, 255, 0.4); text-align: right; margin-top: 4px; width: 100%; }
@@ -147,14 +122,6 @@
         .modal-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(15,23,42,0.4); border: 1px solid rgba(255,255,255,0.02); border-radius: 12px; cursor: pointer; color: #e2e8f0; font-weight: 500; }
         .modal-item:hover { background: rgba(0,168,132,0.15); border-color: rgba(0,168,132,0.2); }
         .modal-forward-icon { color: #00ca9e; font-size: 16px; }
-        @media (max-width: 767px) {
-            .sidebar { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; height: 100%; }
-            .sidebar.hidden { transform: translateX(-100%); }
-            .chat-area { width: 100%; min-width: 100%; position: absolute; left: 0; top: 0; z-index: 4; }
-            .back-btn { display: block; }
-            .bubble { max-width: 85%; }
-            .video-round { width: 260px; height: 260px; }
-        }
     </style>
 </head>
 <body>
@@ -252,7 +219,6 @@
     let activeMessageType = null;
     let activeMessageOriginalSender = null;
     
-    // Переменные логики цитирования
     let quotedMessageId = null;
     let quotedMessageText = null;
     let quotedMessageSender = null;
@@ -263,7 +229,6 @@
 
     document.getElementById('text-input').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
     document.getElementById('new-friend-name').addEventListener('keypress', function(e) { if (e.key === 'Enter') sendFriendRequest(); });
-
     function handleAuth() {
         const username = document.getElementById('auth-user').value.trim();
         const password = document.getElementById('auth-pass').value.trim();
@@ -281,6 +246,7 @@
         })
         .catch(() => { errorDiv.textContent = "Ошибка сервера"; errorDiv.style.display = "block"; });
     }
+
     function showChat() {
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'flex';
@@ -369,6 +335,7 @@
             box.appendChild(item);
         });
     }
+
     function openCreateGroupModal() { document.getElementById('group-modal').style.display = 'flex'; }
     function closeGroupModal() { document.getElementById('group-modal').style.display = 'none'; }
 
@@ -379,6 +346,7 @@
         const gMembersRaw = membersInput.value.trim();
         if (!gName || !gMembersRaw) { alert("Заполните поля!"); return; }
         const memberArray = gMembersRaw.split(',').map(m => m.trim()).filter(m => m !== '');
+        nameInput.blur(); membersInput.blur();
         fetch('/api/groups/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -387,7 +355,6 @@
         .then(res => res.json())
         .then(data => { if (data.success) { nameInput.value = ''; membersInput.value = ''; closeGroupModal(); loadFriendsAndRequests(); } });
     }
-
     function deleteFriend(friendObj, event) {
         if (event) event.stopPropagation();
         if (friendObj.isGroup) {
@@ -400,6 +367,7 @@
         if (!isCurrentGroup && currentPartner && currentPartner.toLowerCase() === friendObj.name.toLowerCase()) resetChatArea();
         fetch('/api/friends/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: currentUser, friends: cleanNames }) }).then(() => loadFriendsAndRequests());
     }
+
     function resetChatArea() {
         currentPartner = null; currentRoomId = null; isCurrentGroup = false; cancelReply();
         document.getElementById('partner-display-name').textContent = "Чат не выбран";
@@ -478,6 +446,7 @@
             }).catch(() => alert("Нет доступа к камере!"));
         }
     }
+
     function uploadAnyFile(inputElement) {
         if (!inputElement.files || inputElement.files.length === 0) return;
         const file = inputElement.files[0]; const formData = new FormData();
@@ -564,6 +533,7 @@
             fetch('/api/send', { method: 'POST', body: formData }).then(() => { closeForwardModal(); loadFriendsAndRequests(); });
         }
     }
+
     function inlineDeleteMessage(msgId) {
         if (!confirm("Удалить это сообщение?")) return;
         fetch('/api/messages/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ room: currentRoomId, messageId: msgId }) }).then(() => fetchMessages());
@@ -579,7 +549,6 @@
             data.forEach(msg => {
                 const row = document.createElement('div'); const isMy = msg.sender.toLowerCase() === currentUser.toLowerCase();
                 row.className = `message-row ${isMy ? 'my-msg' : 'other-msg'}`;
-                
                 row.innerHTML = `<div class="swipe-indicator left-indicator">💬</div><div class="swipe-container"><div class="bubble"></div></div><div class="swipe-indicator right-indicator">↪️</div>`;
                 
                 const bubble = row.querySelector('.bubble');
