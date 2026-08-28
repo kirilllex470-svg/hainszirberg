@@ -30,7 +30,6 @@ let groupsDB = readJSON(GROUPS_FILE, {});
 let requestsDB = readJSON(REQUESTS_FILE, {});
 
 const db = { lastRead: {} };
-
 const server = http.createServer((req, res) => {
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
@@ -61,7 +60,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-    // 2. Получение списка чатов со счетчиками непрочитанных
+
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -130,8 +129,6 @@ const server = http.createServer((req, res) => {
         }
         return res.end(JSON.stringify([]));
     }
-
-    // 3. Отправка запроса в друзья
     if (req.url === '/api/friends/request/send' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -159,7 +156,6 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 3.1 Получение списка входящих заявок
     if (req.url.startsWith('/api/friends/requests') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -168,7 +164,6 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 3.2 Принятие/отклонение заявок (Фикс мгновенного добавления)
     if (req.url === '/api/friends/request/respond' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -204,7 +199,6 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 3.3 Сохранение списка друзей напрямую
     if (req.url === '/api/friends/save' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -221,7 +215,6 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 3.5 Создание конференции
     if (req.url === '/api/groups/create' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -241,7 +234,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-    // 4.7 Удаление сообщения
+
     if (req.url === '/api/messages/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -259,7 +252,6 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4.9 Удаление конференции
     if (req.url === '/api/groups/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -278,7 +270,6 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 4.10 Получение сообщений чата
     if (req.url.startsWith('/api/messages') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const room = myUrl.searchParams.get('room');
@@ -287,7 +278,6 @@ const server = http.createServer((req, res) => {
         return res.end(JSON.stringify([]));
     }
 
-    // 4.11 Отметка о прочтении
     if (req.url === '/api/messages/read' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -305,8 +295,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
-    // 5. FormData Прием (БЕЗОШИБОЧНЫЙ СТРОКОВЫЙ ПАРСЕР ТЕКСТА И МЕДИА)
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -332,12 +320,12 @@ const server = http.createServer((req, res) => {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const nameMatch = part.match(/name="([^"]+)"/);
                     if (!nameMatch) continue;
-                    const name = nameMatch[1]; // Фикс регулярки: берем строго значение из первой группы
+                    const name = nameMatch[1];
 
                     if (part.includes('filename="')) {
                         const filenameMatch = part.match(/filename="([^"]+)"/);
                         if (filenameMatch) {
-                            originalFileName = filenameMatch[1]; // Фикс регулярки
+                            originalFileName = filenameMatch[1];
                             if (originalFileName.includes('.')) {
                                 const splitName = originalFileName.split('.');
                                 fileExt = splitName[splitName.length - 1];
@@ -353,7 +341,8 @@ const server = http.createServer((req, res) => {
                     }
                 }
             }
-            const { sender, room, type, text, forwardedFrom } = fields;
+
+            const { sender, room, type, text, forwardedFrom, replyTo } = fields;
             if (sender && room) {
                 let finalContent = text || '';
                 if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
@@ -369,6 +358,12 @@ const server = http.createServer((req, res) => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 if (!roomsDB[room]) roomsDB[room] = [];
+                
+                let parsedReply = null;
+                if (replyTo) {
+                    try { parsedReply = JSON.parse(replyTo); } catch(e) { parsedReply = null; }
+                }
+
                 roomsDB[room].push({ 
                     id: crypto.randomBytes(8).toString('hex'), 
                     sender, 
@@ -376,7 +371,8 @@ const server = http.createServer((req, res) => {
                     type: type || 'text', 
                     time: timeStr, 
                     timestamp: Date.now(),
-                    forwardedFrom: forwardedFrom || null
+                    forwardedFrom: forwardedFrom || null,
+                    replyTo: parsedReply
                 });
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
@@ -386,8 +382,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
-    // 6. Раздача медиа
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
@@ -406,7 +400,6 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-    // 7. Главная страница
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
