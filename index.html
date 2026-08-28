@@ -196,6 +196,7 @@
             <button onclick="submitCreateGroup()" class="auth-btn" style="background:#0284c7;">Создать</button>
         </div>
     </div>
+
 <script>
     let currentUser = localStorage.getItem('chat_username') || null;
     let currentPartner = null;
@@ -222,11 +223,53 @@
 
     const messagesDiv = document.getElementById('messages');
 
-    // Регистрация Сервис-Воркера для шторки уведомлений на телефоне
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    function subscribeToPushNotifications(registration) {
+        // ВСТАВЬТЕ СЮДА ВАШ PUBLIC KEY ИЗ ТЕРМИНАЛА (строку из блокнота)
+        const publicKeyVapid = "BHuADoeSNqgu-DNYLbYvSs35USMYUUoAccEojQEXqTOjK5Kc_Bp2CbQQjGJ2cH0z5BacrHV2qj6t91aBwfQBMPk";
+        
+        const subscribeOptions = {
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKeyVapid)
+        };
+
+        return registration.pushManager.subscribe(subscribeOptions)
+            .then(pushSubscription => {
+                return fetch('/api/push/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user: currentUser,
+                        subscription: pushSubscription
+                    })
+                });
+            })
+            .then(() => console.log('Устройство успешно привязано к Web Push API'))
+            .catch(err => console.error('Ошибка подписки на фоновые пуши:', err));
+    }
+
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Служба уведомлений активна (SW)'))
-            .catch(err => console.log('Ошибка SW:', err));
+            .then(reg => {
+                console.log('Служба уведомлений активна (SW)');
+                if (Notification.permission === 'granted') {
+                    if (currentUser) subscribeToPushNotifications(reg);
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted' && currentUser) subscribeToPushNotifications(reg);
+                    });
+                }
+            });
     }
 
     if (currentUser) { showChat(); }
@@ -256,6 +299,13 @@
         document.getElementById('app-screen').style.display = 'flex';
         document.getElementById('my-name').textContent = currentUser;
         document.getElementById('my-avatar').textContent = currentUser.substring(0,2);
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(reg => {
+                if (Notification.permission === 'granted') subscribeToPushNotifications(reg);
+            });
+        }
+
         if (!updateInterval) { 
             updateInterval = setInterval(() => {
                 fetchMessages();
@@ -263,9 +313,6 @@
             }, 1500); 
         }
         loadFriendsAndRequests();
-        if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-            Notification.requestPermission();
-        }
     }
 
     function loadFriendsAndRequests() {
@@ -277,6 +324,7 @@
             .then(res => res.json())
             .then(data => { friendRequests = data; renderRequests(); });
     }
+
     function sendFriendRequest() {
         const input = document.getElementById('new-friend-name');
         const targetName = input.value.trim();
@@ -319,6 +367,7 @@
             box.appendChild(item);
         });
     }
+
     function renderFriends() {
         const box = document.getElementById('friends-box');
         box.innerHTML = '';
@@ -378,9 +427,6 @@
         document.getElementById('text-input').setAttribute('disabled', 'true');
         document.getElementById('text-input').placeholder = "Сообщение...";
         messagesDiv.innerHTML = `<div class="chat-placeholder">Выберите друга или группу из списка контактов слева.</div>`;
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: currentUser, room: null });
-        }
     }
 
     function selectChat(itemObj) {
@@ -402,18 +448,13 @@
         if (window.innerWidth < 768) { document.getElementById('app-sidebar').classList.add('hidden'); }
         messagesDiv.innerHTML = '';
         markChatAsRead(currentRoomId); fetchMessages(); renderFriends();
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: currentUser, room: currentRoomId });
-        }
     }
+
     function closeChatMobile() { document.getElementById('app-sidebar').classList.remove('hidden'); }
     function markChatAsRead(roomId) { if (!currentUser || !roomId) return; fetch('/api/messages/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: currentUser, room: roomId }) }).then(() => loadFriendsAndRequests()); }
 
     function logout() {
         clearInterval(updateInterval); updateInterval = null; localStorage.removeItem('chat_username');
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: null, room: null });
-        }
         currentUser = null; currentPartner = null; currentRoomId = null; isCurrentGroup = false; friendsList = []; friendRequests = [];
         document.getElementById('app-screen').style.display = 'none'; document.getElementById('auth-screen').style.display = 'block';
         document.getElementById('text-input').setAttribute('disabled', 'true');
@@ -438,6 +479,7 @@
             }).catch(() => alert("Нет доступа к микрофону!"));
         }
     }
+
     function toggleVideoRecord() {
         const btn = document.getElementById('video-btn'); const preview = document.getElementById('video-preview');
         if (videoRecorder && videoRecorder.state === "recording") { videoRecorder.stop(); btn.classList.remove('recording'); btn.textContent = "🎥"; preview.style.display = 'none'; if (preview.srcObject) { preview.srcObject.getTracks().forEach(track => track.stop()); preview.srcObject = null; } }
@@ -484,10 +526,10 @@
         if (msgType === 'video') displayStr = "🎥 Видео-кружок";
         if (msgType === 'file') { try { displayStr = `📎 Файл: ${JSON.parse(rawText).name}`; } catch(e){} }
 
-        container.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; isSwiping = true; container.style.transition = 'none'; }, {passive: true});
+        container.addEventListener('touchstart', (e) => { startX = e.touches.clientX; isSwiping = true; container.style.transition = 'none'; }, {passive: true});
         container.addEventListener('touchmove', (e) => {
             if (!isSwiping) return;
-            currentX = e.touches[0].clientX - startX;
+            currentX = e.touches.clientX - startX;
             if (currentX > 80) currentX = 80;
             if (currentX < -80) currentX = -80;
             
@@ -505,6 +547,7 @@
             currentX = 0;
         });
     }
+
     function handleQuoteTrigger(id, text, sender) {
         quotedMessageId = id; quotedMessageText = text; quotedMessageSender = sender;
         const bar = document.getElementById('reply-bar'); const textEl = document.getElementById('reply-bar-text');
