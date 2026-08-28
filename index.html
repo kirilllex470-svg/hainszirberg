@@ -469,6 +469,19 @@ function showChat() {
         if (audioRecorder && audioRecorder.state === "recording") { audioRecorder.stop(); btn.classList.remove('recording'); btn.textContent = "🎙️"; }
         else {
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                // ... внутри navigator.mediaDevices.getUserMedia(...).then(stream => {
+    
+    // ДЛЯ АНДРОИДА ЛУЧШЕ ВСЕГО WEBM (он там родной)
+    let options = { mimeType: 'video/webm;codecs=vp8,opus' };
+    
+    // Если вдруг браузер (например Samsung Internet) хочет mp4
+    if (MediaRecorder.isTypeSupported('video/mp4')) {
+        options = { mimeType: 'video/mp4' };
+    }
+    
+    videoRecorder = new MediaRecorder(stream, options);
+// ...
+
                 audioChunks = []; let options = { mimeType: 'audio/webm; codecs=opus' };
                 if (!MediaRecorder.isTypeSupported(options.mimeType)) { options = { mimeType: 'audio/webm' }; }
                 audioRecorder = new MediaRecorder(stream, options);
