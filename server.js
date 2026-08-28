@@ -2,12 +2,14 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const webpush = require('web-push');
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 const HISTORY_FILE = path.join(__dirname, 'history.json');
 const FRIENDS_FILE = path.join(__dirname, 'friends.json');
 const GROUPS_FILE = path.join(__dirname, 'groups.json');
 const REQUESTS_FILE = path.join(__dirname, 'requests.json'); 
+const SUBSCRIPTIONS_FILE = path.join(__dirname, 'subscriptions.json'); 
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
@@ -23,12 +25,24 @@ function writeJSON(filePath, data) {
     catch (e) { console.error("Ошибка записи JSON:", e); }
 }
 
+// Сюда один раз вставляются сгенерированные ключи:
+const vapidKeys = {
+    publicKey: "BHuADoeSNqgu-DNYLbYvSs35USMYUUoAccEojQEXqTOjK5Kc_Bp2CbQQjGJ2cH0z5BacrHV2qj6t91aBwfQBMPk",
+    privateKey: "SUQne7ZD3q4kIlaQxVOjyBKr4YMklQIX9vhXGvOwjkc"
+};
+
+webpush.setVapidDetails(
+    'mailto:admin@darknetzone.com',
+    vapidKeys.publicKey,
+    vapidKeys.privateKey
+);
+
 let usersDB = readJSON(USERS_FILE, {});
 let roomsDB = readJSON(HISTORY_FILE, {});
 let friendsDB = readJSON(FRIENDS_FILE, {});
 let groupsDB = readJSON(GROUPS_FILE, {});
 let requestsDB = readJSON(REQUESTS_FILE, {});
-
+let subscriptionsDB = readJSON(SUBSCRIPTIONS_FILE, {});
 const db = { lastRead: {} };
 const server = http.createServer((req, res) => {
     // Раздача Сервис-Воркера для шторки телефона с правильным заголовком Service-Worker-Allowed
@@ -37,6 +51,30 @@ const server = http.createServer((req, res) => {
             if (err) { res.writeHead(404); return res.end('SW Not Found'); }
             res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Service-Worker-Allowed': '/' });
             res.end(data);
+        });
+        return;
+    }
+
+    if (req.url === '/api/push/subscribe' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
+        req.on('end', () => {
+            try {
+                const { user, subscription } = JSON.parse(body);
+                if (user && subscription) {
+                    const userKey = user.toLowerCase();
+                    if (!subscriptionsDB[userKey]) subscriptionsDB[userKey] = [];
+                    
+                    const exists = subscriptionsDB[userKey].some(s => s.endpoint === subscription.endpoint);
+                    if (!exists) {
+                        subscriptionsDB[userKey].push(subscription);
+                        writeJSON(SUBSCRIPTIONS_FILE, subscriptionsDB);
+                    }
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: true }));
+                }
+                res.writeHead(400); res.end('Bad Request');
+            } catch (e) { res.writeHead(400); res.end('Bad Request'); }
         });
         return;
     }
@@ -303,6 +341,55 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+    // ФУНКЦИЯ ТРИГГЕРА: Рассылает системные пуши на зарегистрированные телефоны участников
+    function triggerPushNotifications(room, sender, text, type) {
+        let targetUsers = [];
+        
+        // 1. Если это конференция, пушим всем участникам
+        if (groupsDB[room]) {
+            targetUsers = groupsDB[room].members.map(m => m.toLowerCase());
+        } else {
+            // 2. Если личный чат, парсим имена из ID комнаты
+            const names = room.split('_');
+            if (names.length > 0) {
+                // Извлекаем имена из названия комнаты (сортированный массив по логике клиента)
+                // Пример строки комнаты: user1,user2_user1,user2
+                const cleanNames = names[0].split(',');
+                targetUsers = cleanNames.map(n => n.toLowerCase());
+            }
+        }
+
+        // Форматируем красивый текст для шторки в зависимости от типа сообщения
+        let cleanText = text || '';
+        if (type === 'audio') cleanText = "🎙️ Голосовое сообщение";
+        if (type === 'video') cleanText = "🎥 Видео-кружок";
+        if (type === 'file') cleanText = "📎 Отправил файл";
+
+        const pushPayload = JSON.stringify({
+            title: `Новое от ${sender}`,
+            body: cleanText,
+            room: room
+        });
+
+        // 3. Отправляем пуш-запросы всем, кроме самого отправителя
+        targetUsers.forEach(userKey => {
+            if (userKey !== sender.toLowerCase() && subscriptionsDB[userKey]) {
+                // Фильтруем просроченные/удаленные токены на лету
+                subscriptionsDB[userKey] = subscriptionsDB[userKey].filter(sub => {
+                    webpush.sendNotification(sub, pushPayload)
+                        .catch(err => {
+                            // Если пуш-сервер (Google/Apple) говорит, что токен умер (410 или 404), удаляем его из БД
+                            if (err.statusCode === 410 || err.statusCode === 404) {
+                                return false; 
+                            }
+                            console.error("Ошибка отправки пуша:", err.message);
+                        });
+                    return true;
+                });
+            }
+        });
+        writeJSON(SUBSCRIPTIONS_FILE, subscriptionsDB);
+    }
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -380,6 +467,14 @@ const server = http.createServer((req, res) => {
                 });
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
+
+                // Вызов триггера пуша: будит телефон и шлёт пуш в шторку
+                try {
+                    triggerPushNotifications(room, sender, finalContent, type || 'text');
+                } catch(e) {
+                    console.error("Ошибка отложенного пуша:", e.message);
+                }
+
                 res.writeHead(200); return res.end('OK');
             }
             res.writeHead(400); res.end('Incomplete data');
