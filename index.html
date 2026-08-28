@@ -59,13 +59,30 @@
         .partner-status { color: #00ca9e; font-size: 12px; }
         #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: rgba(10, 15, 30, 0.3); position: relative; }
         .chat-placeholder { margin: auto; background: rgba(30, 41, 59, 0.8); padding: 16px 24px; border-radius: 16px; color: #94a3b8; font-size: 14px; text-align: center; max-width: 85%; border: 1px solid rgba(255,255,255,0.05); }
-        .message-row { display: flex; width: 100%; position: relative; align-items: center; overflow: visible; }
+        .message-row { 
+    display: flex; 
+    width: 100%; 
+    position: relative; 
+    align-items: center; 
+    overflow: visible; 
+}
         .message-row.my-msg { justify-content: flex-end; }
         .message-row.other-msg { justify-content: flex-start; }
         
         /* Container swipe with return animation */
-        .swipe-container { display: flex; align-items: center; width: auto; max-width: 75%; position: relative; transition: transform 0.2s ease-out; will-change: transform; user-select: none; }
-        .my-msg .swipe-container { justify-content: flex-end; }
+.swipe-container { 
+    display: flex; 
+    align-items: center; 
+    width: auto; 
+    max-width: 75%; 
+    min-width: 0; /* Разрешает флекс-элементу корректно сжиматься и не ломать текст */
+    flex-grow: 0; 
+    position: relative; 
+    transition: transform 0.2s ease-out; 
+    will-change: transform; 
+    user-select: none; 
+}
+.my-msg .swipe-container { justify-content: flex-end; }
         
         /* Swipe indicators behind messages */
         .swipe-indicator { position: absolute; top: 50%; transform: translateY(-50%); font-size: 18px; opacity: 0; transition: opacity 0.1s; pointer-events: none; color: #00ca9e; }
@@ -73,7 +90,20 @@
         .swipe-indicator.right-indicator { right: -35px; }
 
         /* Bubble styles - fixed text sizing and padding constraint */
-        .bubble { padding: 10px 14px; border-radius: 16px; font-size: 15px; color: #f1f5f9; position: relative; word-break: break-word; -webkit-tap-highlight-color: transparent; min-width: 60px; }
+        .bubble { 
+    padding: 10px 14px; 
+    border-radius: 16px; 
+    font-size: 15px; 
+    color: #f1f5f9; 
+    position: relative; 
+    
+    /* Эти свойства заставят текст ложиться ровными строками на телефоне */
+    width: fit-content; 
+    word-break: normal; 
+    overflow-wrap: break-word; /* Безопасный перенос длинных слов */
+    white-space: normal;       /* Запрещаем мобильным браузерам схлопывать текст в столбик */
+    -webkit-tap-highlight-color: transparent; 
+}
         .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; padding-right: 28px; }
         .other-msg .bubble { background: #1e293b; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); padding-right: 28px; }
         
