@@ -4,13 +4,19 @@ const path = require('path');
 const crypto = require('crypto');
 const webpush = require('web-push');
 
-const USERS_FILE = path.join(__dirname, 'users.json');
-const HISTORY_FILE = path.join(__dirname, 'history.json');
-const FRIENDS_FILE = path.join(__dirname, 'friends.json');
-const GROUPS_FILE = path.join(__dirname, 'groups.json');
-const REQUESTS_FILE = path.join(__dirname, 'requests.json'); 
-const SUBSCRIPTIONS_FILE = path.join(__dirname, 'subscriptions.json'); 
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
+// НАЙДИТЕ И ЗАМЕНИТЕ ЭТИ СТРОКИ В НАЧАЛЕ server.js:
+const DATA_DIR = '/data'; // Путь к нашему вечному диску на Render
+
+// Если мы запускаем код на компьютере для теста, диска /data нет, используем текущую папку
+const storagePath = fs.existsSync(DATA_DIR) ? DATA_DIR : __dirname;
+
+const USERS_FILE = path.join(storagePath, 'users.json');
+const HISTORY_FILE = path.join(storagePath, 'history.json');
+const FRIENDS_FILE = path.join(storagePath, 'friends.json');
+const GROUPS_FILE = path.join(storagePath, 'groups.json');
+const REQUESTS_FILE = path.join(storagePath, 'requests.json'); 
+const SUBSCRIPTIONS_FILE = path.join(storagePath, 'subscriptions.json'); 
+const UPLOADS_DIR = path.join(storagePath, 'uploads');
 
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
 
