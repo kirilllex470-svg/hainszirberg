@@ -60,7 +60,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -98,7 +97,6 @@ const server = http.createServer((req, res) => {
                 }
                 return { name: friendName, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: false };
             });
-
             Object.keys(groupsDB).forEach(groupId => {
                 const group = groupsDB[groupId];
                 if (group.members.some(m => m.toLowerCase() === myLowerName)) {
@@ -163,7 +161,6 @@ const server = http.createServer((req, res) => {
         if (user) return res.end(JSON.stringify(requestsDB[user.toLowerCase()] || []));
         return res.end(JSON.stringify([]));
     }
-
     if (req.url === '/api/friends/request/respond' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -173,22 +170,17 @@ const server = http.createServer((req, res) => {
                 if (user && from && action) {
                     const myLower = user.toLowerCase();
                     const fromLower = from.toLowerCase();
-
                     if (requestsDB[myLower]) {
                         requestsDB[myLower] = requestsDB[myLower].filter(name => name.toLowerCase() !== fromLower);
                         writeJSON(REQUESTS_FILE, requestsDB);
                     }
-
                     if (action === 'accept') {
                         const trueMyName = usersDB[myLower] ? usersDB[myLower].username : user;
                         const trueFromName = usersDB[fromLower] ? usersDB[fromLower].username : from;
-
                         if (!friendsDB[myLower]) friendsDB[myLower] = [];
                         if (!friendsDB[myLower].includes(trueFromName)) friendsDB[myLower].push(trueFromName);
-
                         if (!friendsDB[fromLower]) friendsDB[fromLower] = [];
                         if (!friendsDB[fromLower].includes(trueMyName)) friendsDB[fromLower].push(trueMyName);
-
                         writeJSON(FRIENDS_FILE, friendsDB);
                     }
                     res.writeHead(200); return res.end('OK');
@@ -251,7 +243,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     if (req.url === '/api/groups/delete' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -295,12 +286,12 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
             res.writeHead(400); return res.end('Ожидался FormData');
         }
-        
         const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
         const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
         if (!boundary) { res.writeHead(400); return res.end('Не найден boundary'); }
@@ -311,17 +302,12 @@ const server = http.createServer((req, res) => {
             const buffer = Buffer.concat(chunks);
             const bufferStr = buffer.toString('binary');
             const parts = bufferStr.split('--' + boundary);
-            let fields = {};
-            let fileBuffer = null;
-            let fileExt = 'bin';
-            let originalFileName = '';
+            let fields = {}; let fileBuffer = null; let fileExt = 'bin'; let originalFileName = '';
 
             for (let part of parts) {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const nameMatch = part.match(/name="([^"]+)"/);
-                    if (!nameMatch) continue;
-                    const name = nameMatch[1];
-
+                    if (!nameMatch) continue; const name = nameMatch[1];
                     if (part.includes('filename="')) {
                         const filenameMatch = part.match(/filename="([^"]+)"/);
                         if (filenameMatch) {
@@ -332,16 +318,13 @@ const server = http.createServer((req, res) => {
                             }
                         }
                         const headerEnd = part.indexOf('\r\n\r\n') + 4;
-                        const fileContentBinary = part.substring(headerEnd, part.length - 2);
-                        fileBuffer = Buffer.from(fileContentBinary, 'binary');
+                        fileBuffer = Buffer.from(part.substring(headerEnd, part.length - 2), 'binary');
                     } else {
                         const headerEnd = part.indexOf('\r\n\r\n') + 4;
-                        const value = part.substring(headerEnd, part.length - 2).trim();
-                        fields[name] = Buffer.from(value, 'binary').toString('utf-8');
+                        fields[name] = Buffer.from(part.substring(headerEnd, part.length - 2).trim(), 'binary').toString('utf-8');
                     }
                 }
             }
-
             const { sender, room, type, text, forwardedFrom, replyTo } = fields;
             if (sender && room) {
                 let finalContent = text || '';
@@ -358,11 +341,9 @@ const server = http.createServer((req, res) => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 if (!roomsDB[room]) roomsDB[room] = [];
-                
+
                 let parsedReply = null;
-                if (replyTo) {
-                    try { parsedReply = JSON.parse(replyTo); } catch(e) { parsedReply = null; }
-                }
+                if (replyTo) { try { parsedReply = JSON.parse(replyTo); } catch(e){} }
 
                 roomsDB[room].push({ 
                     id: crypto.randomBytes(8).toString('hex'), 
@@ -382,12 +363,12 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); return res.end('File Not Found'); }
-            let contentType = 'application/octet-stream';
-            const ext = path.extname(req.url).toLowerCase();
+            let contentType = 'application/octet-stream'; const ext = path.extname(req.url).toLowerCase();
             if (ext === '.mp4') contentType = 'video/mp4';
             else if (ext === '.webm') contentType = req.url.includes('audio') ? 'audio/webm' : 'video/webm';
             else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
@@ -410,6 +391,5 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(404); res.end('Not Found');
 });
-
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
