@@ -523,34 +523,75 @@ function showChat() {
         const container = rowElement.querySelector('.swipe-container');
         const leftIndicator = rowElement.querySelector('.left-indicator');
         const rightIndicator = rowElement.querySelector('.right-indicator');
-        let startX = 0; let currentX = 0; let isSwiping = false;
-        
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let isSwiping = false;
+        let isHorizontal = false;
+
         let displayStr = rawText;
         if (msgType === 'audio') displayStr = "🎙️ Голосовое сообщение";
         if (msgType === 'video') displayStr = "🎥 Видео-кружок";
         if (msgType === 'file') { try { displayStr = `📎 Файл: ${JSON.parse(rawText).name}`; } catch(e){} }
 
-        container.addEventListener('touchstart', (e) => { startX = e.touches.clientX; isSwiping = true; container.style.transition = 'none'; }, {passive: true});
+        // passive: false ОБЯЗАТЕЛЕН на Андроид для отмены системных свайпов "Назад"
+        container.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            isSwiping = true;
+            isHorizontal = false;
+            container.style.transition = 'none';
+        }, { passive: false });
+
         container.addEventListener('touchmove', (e) => {
             if (!isSwiping) return;
-            currentX = e.touches.clientX - startX;
-            if (currentX > 80) currentX = 80;
-            if (currentX < -80) currentX = -80;
             
-            container.style.transform = `translateX(${currentX}px)`;
-            if (currentX > 30) { leftIndicator.style.opacity = '1'; rightIndicator.style.opacity = '0'; }
-            else if (currentX < -30) { rightIndicator.style.opacity = '1'; leftIndicator.style.opacity = '0'; }
-            else { leftIndicator.style.opacity = '0'; rightIndicator.style.opacity = '0'; }
-        }, {passive: true});
+            const diffX = e.touches[0].clientX - startX;
+            const diffY = e.touches[0].clientY - startY;
+
+            // Если движение явно горизонтальное — блокируем прокрутку экрана и системные жесты Андроид
+            if (!isHorizontal && Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 8) {
+                isHorizontal = true;
+            }
+
+            if (isHorizontal) {
+                if (e.cancelable) e.preventDefault(); // Запрещаем Андроиду выполнять жест "Назад"
+                
+                // Эластичное сопротивление (сообщение не улетит слишком далеко)
+                currentX = diffX * 0.6;
+                if (currentX > 80) currentX = 80;
+                if (currentX < -80) currentX = -80;
+                
+                container.style.transform = `translateX(${currentX}px)`;
+
+                // Подсветка индикаторов цитаты/пересылки
+                if (currentX > 35) { 
+                    leftIndicator.style.opacity = '1'; rightIndicator.style.opacity = '0'; 
+                } else if (currentX < -35) { 
+                    rightIndicator.style.opacity = '1'; leftIndicator.style.opacity = '0'; 
+                } else { 
+                    leftIndicator.style.opacity = '0'; rightIndicator.style.opacity = '0'; 
+                }
+            }
+        }, { passive: false });
 
         container.addEventListener('touchend', () => {
-            isSwiping = false; container.style.transition = 'transform 0.2s ease-out'; container.style.transform = 'translateX(0px)';
-            leftIndicator.style.opacity = '0'; rightIndicator.style.opacity = '0';
-            if (currentX > 45) { handleQuoteTrigger(msgId, displayStr, sender); } 
-            else if (currentX < -45) { handleForwardTrigger(msgId, rawText, msgType, sender); }
+            isSwiping = false;
+            container.style.transition = 'transform 0.2s cubic-bezier(0.1, 0.8, 0.3, 1)';
+            container.style.transform = 'translateX(0px)';
+            leftIndicator.style.opacity = '0';
+            rightIndicator.style.opacity = '0';
+
+            // Если свайпнули уверенно — триггерим действие
+            if (currentX > 50) { 
+                handleQuoteTrigger(msgId, displayStr, sender); 
+            } else if (currentX < -50) { 
+                handleForwardTrigger(msgId, rawText, msgType, sender); 
+            }
             currentX = 0;
         });
     }
+
 
     function handleQuoteTrigger(id, text, sender) {
         quotedMessageId = id; quotedMessageText = text; quotedMessageSender = sender;
@@ -614,9 +655,16 @@ function showChat() {
                 let authorHTML = (isCurrentGroup && !isMy) ? `<div class="msg-author">${msg.sender}</div>` : '';
                 let delBtnHTML = `<button class="msg-del-inline-btn" onclick="inlineDeleteMessage('${msg.id}')">&times;</button>`;
                 
+                // НАЙДИТЕ ЭТОТ БЛОК ВНУТРИ ФУНКЦИИ fetchMessages И ЗАМЕНИТЕ НА ДАННЫЙ:
                 let contentHTML = '';
-                if (msg.type === 'audio') contentHTML = `<audio class="audio-player" src="${msg.text}" controls></audio>`;
-                else if (msg.type === 'video') contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop onclick="playVideoWithSound(this)"></video>`;
+                if (msg.type === 'audio') {
+                    // Добавлен preload="metadata" для ускорения загрузки на Андроид плеерах
+                    contentHTML = `<audio class="audio-player" src="${msg.text}" controls preload="metadata" style="display:block; max-width:100%;"></audio>`;
+                }
+                else if (msg.type === 'video') {
+                    // Изменен режим автоплея под строгую политику Android Chrome (добавлен playsinline)
+                    contentHTML = `<video class="video-round" src="${msg.text}" playsinline autoplay muted loop style="display:block;" onclick="playVideoWithSound(this)"></video>`;
+                }
                 else if (msg.type === 'file') {
                     try {
                         const fileObj = JSON.parse(msg.text); const ext = fileObj.name.split('.').pop().toLowerCase();
@@ -624,7 +672,7 @@ function showChat() {
                         else { contentHTML = `<a href="${fileObj.path}" target="_blank" class="chat-file-card"><span class="chat-file-icon">📄</span><div class="chat-file-info"><span class="chat-file-name">${fileObj.name}</span><span class="chat-file-action">Скачать</span></div></a>`; }
                     } catch(e) { contentHTML = `<div class="msg-text">Поврежденный файл</div>`; }
                 } else { contentHTML = `<div class="msg-text">${msg.text}</div>`; }
-                
+
                 bubble.innerHTML = `${delBtnHTML}${quoteHTML}${forwardHTML}${authorHTML}${contentHTML}<div class="msg-time">${msg.time}</div>`;
                 messagesDiv.appendChild(row);
                 setupSwipe(row, msg.id, msg.text, msg.type, msg.sender);
