@@ -401,68 +401,97 @@ const server = http.createServer((req, res) => {
         if (!contentType || !contentType.includes('multipart/form-data')) {
             res.writeHead(400); return res.end('Ожидался FormData');
         }
-        
-        // ИСПРАВЛЕНИЕ: Правильный поиск boundary
-        const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
-        const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
-        
-        if (!boundary) { res.writeHead(400); return res.end('Не найден boundary'); }
 
+        // 1. Получаем boundary (границу) из заголовка
+        const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
+        const boundaryStr = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
+        if (!boundaryStr) { res.writeHead(400); return res.end('Не найден boundary'); }
+
+        const boundary = Buffer.from('--' + boundaryStr);
+        
         let chunks = [];
         req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
             const buffer = Buffer.concat(chunks);
-            // Используем latin1 (binary) для сохранения бинарных данных видео/фото
-            const bufferStr = buffer.toString('latin1'); 
             
-            const parts = bufferStr.split('--' + boundary);
+            // 2. Парсим буфер вручную, не превращая его в строку (чтобы не сломать видео)
             let fields = {};
             let fileBuffer = null;
             let fileExt = 'bin';
             let originalFileName = '';
-
-            for (let part of parts) {
-                if (part.includes('Content-Disposition: form-data;')) {
-                    const nameMatch = part.match(/name="([^"]+)"/);
-                    if (!nameMatch) continue;
-                    const name = nameMatch[1]; // Берем первую группу захвата
-
-                    if (part.includes('filename="')) {
-                        const filenameMatch = part.match(/filename="([^"]+)"/);
-                        if (filenameMatch) {
-                            originalFileName = filenameMatch[1]; // Берем имя файла
-                            if (originalFileName.includes('.')) {
-                                const splitName = originalFileName.split('.');
-                                fileExt = splitName[splitName.length - 1];
+            
+            let start = 0;
+            let end = buffer.indexOf(boundary, start);
+            
+            while (end !== -1) {
+                // Вырезаем кусок между границами
+                const part = buffer.subarray(start, end);
+                
+                // Пропускаем границы и CRLF (\r\n)
+                // Структура обычно: \r\nHeaders\r\n\r\nBody\r\n
+                // Поэтому ищем двойной перенос строки \r\n\r\n
+                const doubleCRLF = Buffer.from('\r\n\r\n');
+                const headerEndIndex = part.indexOf(doubleCRLF);
+                
+                if (headerEndIndex !== -1) {
+                    const headerBuf = part.subarray(0, headerEndIndex);
+                    // Заголовки можно безопасно превратить в строку
+                    const headerStr = headerBuf.toString('utf-8');
+                    
+                    // Само тело файла/поля начинается после \r\n\r\n
+                    let bodyStart = headerEndIndex + 4; 
+                    // И заканчивается за 2 байта до конца (там \r\n перед следующей границей)
+                    let bodyEnd = part.length - 2;
+                    
+                    if (bodyEnd > bodyStart) {
+                        // Если это поле name="sender" и т.д.
+                        if (headerStr.includes('name="')) {
+                            const nameMatch = headerStr.match(/name="([^"]+)"/);
+                            if (nameMatch) {
+                                const name = nameMatch[1];
+                                
+                                // Если это ФАЙЛ
+                                if (headerStr.includes('filename="')) {
+                                    const filenameMatch = headerStr.match(/filename="([^"]+)"/);
+                                    if (filenameMatch) {
+                                        originalFileName = filenameMatch[1];
+                                        if (originalFileName.includes('.')) {
+                                            fileExt = originalFileName.split('.').pop();
+                                        }
+                                        fileBuffer = part.subarray(bodyStart, bodyEnd);
+                                    }
+                                } else {
+                                    // Обычное текстовое поле
+                                    const value = part.subarray(bodyStart, bodyEnd).toString('utf-8');
+                                    fields[name] = value; // .trim() убрали, чтобы не ломать данные
+                                }
                             }
                         }
-                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
-                        // Обрезаем \r\n в конце
-                        const fileContentBinary = part.substring(headerEnd, part.length - 2); 
-                        fileBuffer = Buffer.from(fileContentBinary, 'latin1');
-                    } else {
-                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
-                        const value = part.substring(headerEnd, part.length - 2).trim();
-                        // Декодируем текст сообщения из utf-8 корректно
-                        fields[name] = Buffer.from(value, 'latin1').toString('utf-8');
                     }
                 }
+                
+                start = end + boundary.length;
+                end = buffer.indexOf(boundary, start);
             }
-            
-            // ... (Дальше код сохранения остается прежним)
+
+            // 3. Сохранение (код остается прежним, но теперь данные чистые)
             const { sender, room, type, text, forwardedFrom, quoteId, quoteText, quoteSender } = fields;
             if (sender && room) {
                 let finalContent = text || '';
+                
+                // Если пришел файл (проверяем буфер)
                 if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
                     const fileName = `${type}_${crypto.randomBytes(8).toString('hex')}.${fileExt}`;
                     const filePath = path.join(UPLOADS_DIR, fileName);
                     fs.writeFileSync(filePath, fileBuffer);
+                    
                     if (type === 'file') {
                         finalContent = JSON.stringify({ path: `/uploads/${fileName}`, name: originalFileName });
                     } else {
                         finalContent = `/uploads/${fileName}`;
                     }
                 }
+                
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 if (!roomsDB[room]) roomsDB[room] = [];
@@ -492,6 +521,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
 
 
     // ЗАМЕНИТЕ ЭТОТ БЛОК В КОНЦЕ server.js:
