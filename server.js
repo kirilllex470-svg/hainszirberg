@@ -60,7 +60,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -77,7 +76,9 @@ const server = http.createServer((req, res) => {
                 const roomId = `${sortedRoom}_${sortedRoom}`;
                 const roomMessages = roomsDB[roomId] || [];
                 
-                let lastMsgText = "Нет сообщений"; let lastMsgTime = ""; let unreadCount = 0;
+                let lastMsgText = "Нет сообщений";
+                let lastMsgTime = "";
+                let unreadCount = 0;
                 const myLastReadTime = myReads[roomId] || 0;
                 
                 if (roomMessages.length > 0) {
@@ -89,16 +90,21 @@ const server = http.createServer((req, res) => {
                     lastMsgTime = lastMsg.time || "";
                     
                     roomMessages.forEach(msg => {
-                        if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) { unreadCount++; }
+                        if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) {
+                            unreadCount++;
+                        }
                     });
                 }
                 return { name: friendName, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: false };
             });
+
             Object.keys(groupsDB).forEach(groupId => {
                 const group = groupsDB[groupId];
                 if (group.members.some(m => m.toLowerCase() === myLowerName)) {
                     const roomMessages = roomsDB[groupId] || [];
-                    let lastMsgText = "Нет сообщений"; let lastMsgTime = ""; let unreadCount = 0;
+                    let lastMsgText = "Нет сообщений";
+                    let lastMsgTime = "";
+                    let unreadCount = 0;
                     const myLastReadTime = myReads[groupId] || 0;
 
                     if (roomMessages.length > 0) {
@@ -110,7 +116,9 @@ const server = http.createServer((req, res) => {
                         lastMsgTime = lastMsg.time || "";
 
                         roomMessages.forEach(msg => {
-                            if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) { unreadCount++; }
+                            if (msg.sender.toLowerCase() !== myLowerName && (msg.timestamp || 0) > myLastReadTime) {
+                                unreadCount++;
+                            }
                         });
                     }
                     listData.push({ id: groupId, name: group.name, lastMessage: lastMsgText, time: lastMsgTime, unread: unreadCount, isGroup: true });
@@ -122,59 +130,93 @@ const server = http.createServer((req, res) => {
     }
 
     if (req.url === '/api/friends/request/send' && req.method === 'POST') {
-        let body = ''; req.on('data', chunk => body += chunk.toString());
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
                 const { from, to } = JSON.parse(body);
-                if (!from || !to) { res.writeHead(400); return res.end('Incomplete data'); }
+                if (!from || !to) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: "Неполные данные" }));
+                }
                 const targetKey = to.toLowerCase();
-                if (!usersDB[targetKey]) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: false, message: "Пользователь не найден!" })); }
+                if (!usersDB[targetKey]) {
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ success: false, message: "Пользователь не найден!" }));
+                }
                 if (!requestsDB[targetKey]) requestsDB[targetKey] = [];
-                if (!requestsDB[targetKey].includes(from)) { requestsDB[targetKey].push(from); writeJSON(REQUESTS_FILE, requestsDB); }
-                res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ success: true }));
+                if (!requestsDB[targetKey].includes(from)) {
+                    requestsDB[targetKey].push(from);
+                    writeJSON(REQUESTS_FILE, requestsDB);
+                }
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                return res.end(JSON.stringify({ success: true }));
             } catch (e) { res.writeHead(400); res.end('Bad Request'); }
-        }); return;
+        });
+        return;
     }
 
     if (req.url.startsWith('/api/friends/requests') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-        const user = myUrl.searchParams.get('user'); res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        const user = myUrl.searchParams.get('user');
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         if (user) return res.end(JSON.stringify(requestsDB[user.toLowerCase()] || []));
         return res.end(JSON.stringify([]));
     }
+
     if (req.url === '/api/friends/request/respond' && req.method === 'POST') {
-        let body = ''; req.on('data', chunk => body += chunk.toString());
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
                 const { user, from, action } = JSON.parse(body);
                 if (user && from && action) {
-                    const myLower = user.toLowerCase(); const fromLower = from.toLowerCase();
-                    if (requestsDB[myLower]) { requestsDB[myLower] = requestsDB[myLower].filter(name => name.toLowerCase() !== fromLower); writeJSON(REQUESTS_FILE, requestsDB); }
+                    const myLower = user.toLowerCase();
+                    const fromLower = from.toLowerCase();
+
+                    if (requestsDB[myLower]) {
+                        requestsDB[myLower] = requestsDB[myLower].filter(name => name.toLowerCase() !== fromLower);
+                        writeJSON(REQUESTS_FILE, requestsDB);
+                    }
+
                     if (action === 'accept') {
-                        const trueMyName = usersDB[myLower] ? usersDB[myLower].username : user; const trueFromName = usersDB[fromLower] ? usersDB[fromLower].username : from;
-                        if (!friendsDB[myLower]) friendsDB[myLower] = []; if (!friendsDB[myLower].includes(trueFromName)) friendsDB[myLower].push(trueFromName);
-                        if (!friendsDB[fromLower]) friendsDB[fromLower] = []; if (!friendsDB[fromLower].includes(trueMyName)) friendsDB[fromLower].push(trueMyName);
+                        const trueMyName = usersDB[myLower] ? usersDB[myLower].username : user;
+                        const trueFromName = usersDB[fromLower] ? usersDB[fromLower].username : from;
+
+                        if (!friendsDB[myLower]) friendsDB[myLower] = [];
+                        if (!friendsDB[myLower].includes(trueFromName)) friendsDB[myLower].push(trueFromName);
+
+                        if (!friendsDB[fromLower]) friendsDB[fromLower] = [];
+                        if (!friendsDB[fromLower].includes(trueMyName)) friendsDB[fromLower].push(trueMyName);
+
                         writeJSON(FRIENDS_FILE, friendsDB);
                     }
                     res.writeHead(200); return res.end('OK');
-                } res.writeHead(400); res.end('Bad Request');
+                }
+                res.writeHead(400); res.end('Bad Request');
             } catch (e) { res.writeHead(400); res.end('Bad Request'); }
-        }); return;
+        });
+        return;
     }
 
     if (req.url === '/api/friends/save' && req.method === 'POST') {
-        let body = ''; req.on('data', chunk => body += chunk.toString());
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
                 const { user, friends } = JSON.parse(body);
-                if (user && Array.isArray(friends)) { friendsDB[user.toLowerCase()] = friends; writeJSON(FRIENDS_FILE, friendsDB); }
+                if (user && Array.isArray(friends)) {
+                    friendsDB[user.toLowerCase()] = friends;
+                    writeJSON(FRIENDS_FILE, friendsDB);
+                }
                 res.writeHead(200); return res.end('OK');
             } catch (e) { res.writeHead(400); res.end('Bad Request'); }
-        }); return;
+        });
+        return;
     }
-
     if (req.url === '/api/groups/create' && req.method === 'POST') {
-        let body = ''; req.on('data', chunk => body += chunk.toString());
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
                 const { creator, groupName, members } = JSON.parse(body);
@@ -182,73 +224,125 @@ const server = http.createServer((req, res) => {
                     const groupId = `group_${crypto.randomBytes(6).toString('hex')}`;
                     if (!members.map(m => m.toLowerCase()).includes(creator.toLowerCase())) members.push(creator);
                     groupsDB[groupId] = { name: groupName, members: members, creator: creator };
-                    writeJSON(GROUPS_FILE, groupsDB); res.writeHead(200, { 'Content-Type': 'application/json' });
+                    writeJSON(GROUPS_FILE, groupsDB);
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
                     return res.end(JSON.stringify({ success: true, groupId }));
-                } res.writeHead(400); res.end('Bad Request');
+                }
+                res.writeHead(400); res.end('Bad Request');
             } catch (e) { res.writeHead(400); res.end('Bad Request'); }
-        }); return;
+        });
+        return;
     }
 
     if (req.url === '/api/messages/delete' && req.method === 'POST') {
-        let body = ''; req.on('data', chunk => body += chunk.toString());
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
                 const { room, messageId } = JSON.parse(body);
-                if (room && messageId && roomsDB[room]) { roomsDB[room] = roomsDB[room].filter(msg => msg.id !== messageId); writeJSON(HISTORY_FILE, roomsDB); res.writeHead(200); return res.end('OK'); }
+                if (room && messageId && roomsDB[room]) {
+                    roomsDB[room] = roomsDB[room].filter(msg => msg.id !== messageId);
+                    writeJSON(HISTORY_FILE, roomsDB);
+                    res.writeHead(200); return res.end('OK');
+                }
                 res.writeHead(400); res.end('Bad Request');
             } catch (e) { res.writeHead(400); res.end('Bad Request'); }
-        }); return;
+        });
+        return;
     }
+
     if (req.url === '/api/groups/delete' && req.method === 'POST') {
-        let body = ''; req.on('data', chunk => body += chunk.toString());
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
                 const { groupId } = JSON.parse(body);
                 if (groupId && groupsDB[groupId]) {
-                    delete groupsDB[groupId]; writeJSON(GROUPS_FILE, groupsDB);
+                    delete groupsDB[groupId];
+                    writeJSON(GROUPS_FILE, groupsDB);
                     if (roomsDB[groupId]) { delete roomsDB[groupId]; writeJSON(HISTORY_FILE, roomsDB); }
                     res.writeHead(200); return res.end('OK');
-                } res.writeHead(400); res.end('Bad Request');
+                }
+                res.writeHead(400); res.end('Bad Request');
             } catch (e) { res.writeHead(400); res.end('Bad Request'); }
-        }); return;
+        });
+        return;
     }
 
     if (req.url.startsWith('/api/messages') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-        const room = myUrl.searchParams.get('room'); res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
+        const room = myUrl.searchParams.get('room');
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' });
         if (room) return res.end(JSON.stringify(roomsDB[room] || []));
         return res.end(JSON.stringify([]));
     }
 
     if (req.url === '/api/messages/read' && req.method === 'POST') {
-        let body = ''; req.on('data', chunk => body += chunk.toString());
+        let body = '';
+        req.on('data', chunk => body += chunk.toString());
         req.on('end', () => {
             try {
                 const { user, room } = JSON.parse(body);
-                if (user && room) { const myLower = user.toLowerCase(); if (!db.lastRead[myLower]) db.lastRead[myLower] = {}; db.lastRead[myLower][room] = Date.now(); res.writeHead(200); return res.end('OK'); }
+                if (user && room) {
+                    const myLower = user.toLowerCase();
+                    if (!db.lastRead[myLower]) db.lastRead[myLower] = {};
+                    db.lastRead[myLower][room] = Date.now();
+                    res.writeHead(200); return res.end('OK');
+                }
                 res.writeHead(400); res.end('Bad Request');
             } catch (e) { res.writeHead(400); res.end('Bad Request'); }
-        }); return;
+        });
+        return;
     }
 
     if (req.url === '/api/send' && req.method === 'POST') {
-        const contentType = req.headers['content-type']; if (!contentType || !contentType.includes('multipart/form-data')) { res.writeHead(400); return res.end('Ожидался FormData'); }
-        const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/); const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
+        const contentType = req.headers['content-type'];
+        if (!contentType || !contentType.includes('multipart/form-data')) {
+            res.writeHead(400); return res.end('Ожидался FormData');
+        }
+        
+        const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
+        const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
         if (!boundary) { res.writeHead(400); return res.end('Не найден boundary'); }
-        let chunks = []; req.on('data', chunk => chunks.push(chunk));
+
+        let chunks = [];
+        req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
-            const buffer = Buffer.concat(chunks); const bufferStr = buffer.toString('binary'); const parts = bufferStr.split('--' + boundary);
-            let fields = {}; let fileBuffer = null; let fileExt = 'bin'; let originalFileName = '';
+            const buffer = Buffer.concat(chunks);
+            const bufferStr = buffer.toString('binary');
+            const parts = bufferStr.split('--' + boundary);
+            let fields = {};
+            let fileBuffer = null;
+            let fileExt = 'bin';
+            let originalFileName = '';
+
             for (let part of parts) {
                 if (part.includes('Content-Disposition: form-data;')) {
-                    const nameMatch = part.match(/name="([^"]+)"/); if (!nameMatch) continue; const name = nameMatch[1];
+                    const nameMatch = part.match(/name="([^"]+)"/);
+                    if (!nameMatch) continue;
+                    const name = nameMatch[1];
+
                     if (part.includes('filename="')) {
-                        const filenameMatch = part.match(/filename="([^"]+)"/); if (filenameMatch) { originalFileName = filenameMatch[1]; if (originalFileName.includes('.')) { const splitName = originalFileName.split('.'); fileExt = splitName[splitName.length - 1]; } }
-                        const headerEnd = part.indexOf('\r\n\r\n') + 4; fileBuffer = Buffer.from(part.substring(headerEnd, part.length - 2), 'binary');
-                    } else { const headerEnd = part.indexOf('\r\n\r\n') + 4; fields[name] = Buffer.from(part.substring(headerEnd, part.length - 2).trim(), 'binary').toString('utf-8'); }
+                        const filenameMatch = part.match(/filename="([^"]+)"/);
+                        if (filenameMatch) {
+                            originalFileName = filenameMatch[1];
+                            if (originalFileName.includes('.')) {
+                                const splitName = originalFileName.split('.');
+                                fileExt = splitName[splitName.length - 1];
+                            }
+                        }
+                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
+                        const fileContentBinary = part.substring(headerEnd, part.length - 2);
+                        fileBuffer = Buffer.from(fileContentBinary, 'binary');
+                    } else {
+                        const headerEnd = part.indexOf('\r\n\r\n') + 4;
+                        const value = part.substring(headerEnd, part.length - 2).trim();
+                        fields[name] = Buffer.from(value, 'binary').toString('utf-8');
+                    }
                 }
             }
-            const { sender, room, type, text, forwardedFrom, replyTo } = fields;
+
+            const { sender, room, type, text, forwardedFrom, quoteId, quoteText, quoteSender } = fields;
             if (sender && room) {
                 let finalContent = text || '';
                 if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
@@ -264,10 +358,7 @@ const server = http.createServer((req, res) => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 if (!roomsDB[room]) roomsDB[room] = [];
-
-                let parsedReply = null;
-                if (replyTo) { try { parsedReply = JSON.parse(replyTo); } catch(e){} }
-
+                
                 roomsDB[room].push({ 
                     id: crypto.randomBytes(8).toString('hex'), 
                     sender, 
@@ -276,7 +367,9 @@ const server = http.createServer((req, res) => {
                     time: timeStr, 
                     timestamp: Date.now(),
                     forwardedFrom: forwardedFrom || null,
-                    replyTo: parsedReply
+                    quoteId: quoteId || null,
+                    quoteText: quoteText || null,
+                    quoteSender: quoteSender || null
                 });
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
@@ -291,7 +384,8 @@ const server = http.createServer((req, res) => {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); return res.end('File Not Found'); }
-            let contentType = 'application/octet-stream'; const ext = path.extname(req.url).toLowerCase();
+            let contentType = 'application/octet-stream';
+            const ext = path.extname(req.url).toLowerCase();
             if (ext === '.mp4') contentType = 'video/mp4';
             else if (ext === '.webm') contentType = req.url.includes('audio') ? 'audio/webm' : 'video/webm';
             else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
@@ -314,5 +408,6 @@ const server = http.createServer((req, res) => {
     }
     res.writeHead(404); res.end('Not Found');
 });
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
