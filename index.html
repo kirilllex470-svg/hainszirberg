@@ -63,7 +63,6 @@
         .message-row.my-msg { justify-content: flex-end; }
         .message-row.other-msg { justify-content: flex-start; }
 
-        /* Контейнер свайпа с поддержкой адаптивности flex-контейнеров на мобильных */
         .swipe-container { display: flex; align-items: center; width: auto; max-width: 75%; min-width: 0; flex-shrink: 1; position: relative; transition: transform 0.2s ease-out; will-change: transform; user-select: none; }
         .my-msg .swipe-container { justify-content: flex-end; }
         
@@ -71,7 +70,6 @@
         .swipe-indicator.left-indicator { left: -35px; }
         .swipe-indicator.right-indicator { right: -35px; }
 
-        /* Обновленные баблы: блокируют схлопывание в столбик, корректно расширяются и переносят длинные слова */
         .bubble { padding: 10px 14px; border-radius: 16px; font-size: 15px; color: #f1f5f9; position: relative; overflow-wrap: break-word; word-wrap: break-word; word-break: normal; white-space: normal; -webkit-tap-highlight-color: transparent; min-width: 60px; width: fit-content; display: block; padding-right: 36px; }
         .my-msg .bubble { background: linear-gradient(135deg, #008f72 0%, #00a884 100%); border-bottom-right-radius: 4px; }
         .other-msg .bubble { background: #1e293b; border-bottom-left-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
@@ -198,7 +196,6 @@
             <button onclick="submitCreateGroup()" class="auth-btn" style="background:#0284c7;">Создать</button>
         </div>
     </div>
-
 <script>
     let currentUser = localStorage.getItem('chat_username') || null;
     let currentPartner = null;
@@ -224,6 +221,13 @@
     let quotedMessageSender = null;
 
     const messagesDiv = document.getElementById('messages');
+
+    // Регистрация Сервис-Воркера для шторки уведомлений на телефоне
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Служба уведомлений активна (SW)'))
+            .catch(err => console.log('Ошибка SW:', err));
+    }
 
     if (currentUser) { showChat(); }
 
@@ -273,7 +277,6 @@
             .then(res => res.json())
             .then(data => { friendRequests = data; renderRequests(); });
     }
-
     function sendFriendRequest() {
         const input = document.getElementById('new-friend-name');
         const targetName = input.value.trim();
@@ -293,6 +296,7 @@
         })
         .catch(() => alert("Пользователь не найден"));
     }
+
     function handleRequest(fromUser, action) {
         fetch('/api/friends/request/respond', {
             method: 'POST',
@@ -315,7 +319,6 @@
             box.appendChild(item);
         });
     }
-
     function renderFriends() {
         const box = document.getElementById('friends-box');
         box.innerHTML = '';
@@ -375,6 +378,9 @@
         document.getElementById('text-input').setAttribute('disabled', 'true');
         document.getElementById('text-input').placeholder = "Сообщение...";
         messagesDiv.innerHTML = `<div class="chat-placeholder">Выберите друга или группу из списка контактов слева.</div>`;
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: currentUser, room: null });
+        }
     }
 
     function selectChat(itemObj) {
@@ -396,17 +402,23 @@
         if (window.innerWidth < 768) { document.getElementById('app-sidebar').classList.add('hidden'); }
         messagesDiv.innerHTML = '';
         markChatAsRead(currentRoomId); fetchMessages(); renderFriends();
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: currentUser, room: currentRoomId });
+        }
     }
-
     function closeChatMobile() { document.getElementById('app-sidebar').classList.remove('hidden'); }
     function markChatAsRead(roomId) { if (!currentUser || !roomId) return; fetch('/api/messages/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user: currentUser, room: roomId }) }).then(() => loadFriendsAndRequests()); }
 
     function logout() {
         clearInterval(updateInterval); updateInterval = null; localStorage.removeItem('chat_username');
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: null, room: null });
+        }
         currentUser = null; currentPartner = null; currentRoomId = null; isCurrentGroup = false; friendsList = []; friendRequests = [];
         document.getElementById('app-screen').style.display = 'none'; document.getElementById('auth-screen').style.display = 'block';
         document.getElementById('text-input').setAttribute('disabled', 'true');
     }
+
     function toggleVoiceRecord() {
         const btn = document.getElementById('voice-btn');
         if (audioRecorder && audioRecorder.state === "recording") { audioRecorder.stop(); btn.classList.remove('recording'); btn.textContent = "🎙️"; }
@@ -426,7 +438,6 @@
             }).catch(() => alert("Нет доступа к микрофону!"));
         }
     }
-
     function toggleVideoRecord() {
         const btn = document.getElementById('video-btn'); const preview = document.getElementById('video-preview');
         if (videoRecorder && videoRecorder.state === "recording") { videoRecorder.stop(); btn.classList.remove('recording'); btn.textContent = "🎥"; preview.style.display = 'none'; if (preview.srcObject) { preview.srcObject.getTracks().forEach(track => track.stop()); preview.srcObject = null; } }
@@ -454,7 +465,6 @@
         if(quotedMessageId) { formData.append('quoteId', quotedMessageId); formData.append('quoteText', quotedMessageText); formData.append('quoteSender', quotedMessageSender); cancelReply(); }
         fetch('/api/send', { method: 'POST', body: formData }).then(() => { inputElement.value = ''; fetchMessages(); }).catch(err => console.error(err));
     }
-
     function sendMessage() {
         const textInput = document.getElementById('text-input'); const text = textInput.value.trim();
         if (text === '' || !currentUser || !currentRoomId) return;
