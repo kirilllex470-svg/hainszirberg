@@ -4,10 +4,9 @@ const path = require('path');
 const crypto = require('crypto');
 const webpush = require('web-push');
 
-// НАЙДИТЕ И ЗАМЕНИТЕ ЭТИ СТРОКИ В НАЧАЛЕ server.js:
-const DATA_DIR = '/data'; // Путь к нашему вечному диску на Render
+const DATA_DIR = '/data'; // Путь к вечному диску на Render
 
-// Если мы запускаем код на компьютере для теста, диска /data нет, используем текущую папку
+// Автоматически определяем, где хранить файлы: на хостинге или локально на ПК при тестах
 const storagePath = fs.existsSync(DATA_DIR) ? DATA_DIR : __dirname;
 
 const USERS_FILE = path.join(storagePath, 'users.json');
@@ -16,9 +15,12 @@ const FRIENDS_FILE = path.join(storagePath, 'friends.json');
 const GROUPS_FILE = path.join(storagePath, 'groups.json');
 const REQUESTS_FILE = path.join(storagePath, 'requests.json'); 
 const SUBSCRIPTIONS_FILE = path.join(storagePath, 'subscriptions.json'); 
-const UPLOADS_DIR = path.join(storagePath, 'uploads');
+const UPLOADS_DIR = path.join(storagePath, 'uploads'); // Путь к медиа на вечном диске
 
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
+// КРИТИЧЕСКИЙ СИНХРОНИЗАТОР: Принудительно создаем папку uploads на диске /data, если её там еще нет
+if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 function readJSON(filePath, defaultVal = {}) {
     try { if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8')); } 
@@ -30,6 +32,9 @@ function writeJSON(filePath, data) {
     try { fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8'); } 
     catch (e) { console.error("Ошибка записи JSON:", e); }
 }
+
+// (Ниже идут ваши зафиксированные VAPID ключи...)
+
 
 // Сюда один раз вставляются сгенерированные ключи:
 const vapidKeys = {
@@ -525,18 +530,25 @@ const server = http.createServer((req, res) => {
 
 
     // ЗАМЕНИТЕ ЭТОТ БЛОК В КОНЦЕ server.js:
+    // ИСПРАВЛЕННЫЙ РОУТЕР: Выдает файлы напрямую с постоянного диска Render
     if (req.url.startsWith('/uploads/')) {
-        const filePath = path.join(__dirname, req.url);
+        // Извлекаем только чистое имя файла (например, video_123.mp4)
+        const fileName = path.basename(req.url);
+        // Связываем его с правильной папкой UPLOADS_DIR на постоянном диске
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        
         fs.readFile(filePath, (err, data) => {
-            if (err) { res.writeHead(404); return res.end('File Not Found'); }
+            if (err) { 
+                res.writeHead(404); 
+                return res.end('File Not Found'); 
+            }
             
             let contentType = 'application/octet-stream';
             const ext = path.extname(req.url).toLowerCase();
             
-            // Жестко прописываем Андроид кодеки, чтобы Chrome сразу понимал что играть
+            // Задаем правильные типы данных для Андроида
             if (ext === '.mp4') contentType = 'video/mp4';
             else if (ext === '.webm') {
-                // Если файл содержит слово audio, отдаем как аудио-вебм, иначе как видео-вебм
                 contentType = req.url.includes('audio') ? 'audio/webm;codecs=opus' : 'video/webm;codecs=vp8,opus';
             }
             else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
@@ -554,7 +566,6 @@ const server = http.createServer((req, res) => {
         return;
     }
 
-
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
@@ -568,3 +579,4 @@ const server = http.createServer((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
+
