@@ -31,6 +31,16 @@ let requestsDB = readJSON(REQUESTS_FILE, {});
 
 const db = { lastRead: {} };
 const server = http.createServer((req, res) => {
+    // Раздача Сервис-Воркера для шторки телефона с правильным заголовком Service-Worker-Allowed
+    if (req.url === '/sw.js') {
+        fs.readFile(path.join(__dirname, 'sw.js'), (err, data) => {
+            if (err) { res.writeHead(404); return res.end('SW Not Found'); }
+            res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Service-Worker-Allowed': '/' });
+            res.end(data);
+        });
+        return;
+    }
+
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -128,7 +138,6 @@ const server = http.createServer((req, res) => {
         }
         return res.end(JSON.stringify([]));
     }
-
     if (req.url === '/api/friends/request/send' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -294,7 +303,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -341,7 +349,6 @@ const server = http.createServer((req, res) => {
                     }
                 }
             }
-
             const { sender, room, type, text, forwardedFrom, quoteId, quoteText, quoteSender } = fields;
             if (sender && room) {
                 let finalContent = text || '';
