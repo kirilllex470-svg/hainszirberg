@@ -170,17 +170,22 @@ const server = http.createServer((req, res) => {
                 if (user && from && action) {
                     const myLower = user.toLowerCase();
                     const fromLower = from.toLowerCase();
+
                     if (requestsDB[myLower]) {
                         requestsDB[myLower] = requestsDB[myLower].filter(name => name.toLowerCase() !== fromLower);
                         writeJSON(REQUESTS_FILE, requestsDB);
                     }
+
                     if (action === 'accept') {
                         const trueMyName = usersDB[myLower] ? usersDB[myLower].username : user;
                         const trueFromName = usersDB[fromLower] ? usersDB[fromLower].username : from;
+
                         if (!friendsDB[myLower]) friendsDB[myLower] = [];
                         if (!friendsDB[myLower].includes(trueFromName)) friendsDB[myLower].push(trueFromName);
+
                         if (!friendsDB[fromLower]) friendsDB[fromLower] = [];
                         if (!friendsDB[fromLower].includes(trueMyName)) friendsDB[fromLower].push(trueMyName);
+
                         writeJSON(FRIENDS_FILE, friendsDB);
                     }
                     res.writeHead(200); return res.end('OK');
@@ -206,7 +211,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     if (req.url === '/api/groups/create' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -286,7 +290,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -307,7 +310,8 @@ const server = http.createServer((req, res) => {
             for (let part of parts) {
                 if (part.includes('Content-Disposition: form-data;')) {
                     const nameMatch = part.match(/name="([^"]+)"/);
-                    if (!nameMatch) continue; const name = nameMatch[1];
+                    if (!nameMatch) continue;
+                    const name = nameMatch[1];
                     if (part.includes('filename="')) {
                         const filenameMatch = part.match(/filename="([^"]+)"/);
                         if (filenameMatch) {
@@ -325,7 +329,7 @@ const server = http.createServer((req, res) => {
                     }
                 }
             }
-            const { sender, room, type, text, forwardedFrom, replyTo } = fields;
+            const { sender, room, type, text, forwardedFrom } = fields;
             if (sender && room) {
                 let finalContent = text || '';
                 if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
@@ -341,10 +345,6 @@ const server = http.createServer((req, res) => {
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
                 if (!roomsDB[room]) roomsDB[room] = [];
-
-                let parsedReply = null;
-                if (replyTo) { try { parsedReply = JSON.parse(replyTo); } catch(e){} }
-
                 roomsDB[room].push({ 
                     id: crypto.randomBytes(8).toString('hex'), 
                     sender, 
@@ -352,8 +352,7 @@ const server = http.createServer((req, res) => {
                     type: type || 'text', 
                     time: timeStr, 
                     timestamp: Date.now(),
-                    forwardedFrom: forwardedFrom || null,
-                    replyTo: parsedReply
+                    forwardedFrom: forwardedFrom || null
                 });
                 if (roomsDB[room].length > 150) roomsDB[room].shift();
                 writeJSON(HISTORY_FILE, roomsDB);
