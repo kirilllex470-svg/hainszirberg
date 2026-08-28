@@ -295,26 +295,29 @@
         .catch(() => { errorDiv.textContent = "Ошибка сервера"; errorDiv.style.display = "block"; });
     }
 
-    function showChat() {
-        document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('app-screen').style.display = 'flex';
-        document.getElementById('my-name').textContent = currentUser;
-        document.getElementById('my-avatar').textContent = currentUser.substring(0,2);
-        
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(reg => {
-                if (Notification.permission === 'granted') subscribeToPushNotifications(reg);
-            });
-        }
-
-        if (!updateInterval) { 
-            updateInterval = setInterval(() => {
-                fetchMessages();
-                loadFriendsAndRequests();
-            }, 1500); 
-        }
-        loadFriendsAndRequests();
+function showChat() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'flex';
+    document.getElementById('my-name').textContent = currentUser;
+    document.getElementById('my-avatar').textContent = currentUser.substring(0,2);
+    
+    // ДОБАВЬТЕ ЭТУ СТРОЧКУ СЮДА:
+    // Она заставит телефон друга принудительно обновить токен в базе при открытии чата
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(reg => {
+            subscribeToPushNotifications(reg); 
+        });
     }
+
+    if (!updateInterval) { 
+        updateInterval = setInterval(() => {
+            fetchMessages();
+            loadFriendsAndRequests();
+        }, 1500); 
+    }
+    loadFriendsAndRequests();
+}
+
 
     function loadFriendsAndRequests() {
         if (!currentUser) return;
