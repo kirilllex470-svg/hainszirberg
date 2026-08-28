@@ -38,8 +38,8 @@ function writeJSON(filePath, data) {
 
 // Сюда один раз вставляются сгенерированные ключи:
 const vapidKeys = {
-    publicKey: "BHuADoeSNqgu-DNYLbYvSs35USMYUUoAccEojQEXqTOjK5Kc_Bp2CbQQjGJ2cH0z5BacrHV2qj6t91aBwfQBMPk",
-    privateKey: "SUQne7ZD3q4kIlaQxVOjyBKr4YMklQIX9vhXGvOwjkc"
+    publicKey: "BP2phyjcLEmZ_53xJkj0gfDb_ztteJUZvjzJO9D7zKxOCPaShQ5JxYHvdYG-sYmZ5ug-0E54IqO9uHT8BF1rQ2Y",
+    privateKey: "xCPfZmNqX0fXkY6Vbske-3PxDB6Wh2rRxGfCYmz_jYY"
 };
 
 webpush.setVapidDetails(
