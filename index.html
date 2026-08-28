@@ -506,11 +506,39 @@ function showChat() {
 
     function uploadAnyFile(inputElement) {
         if (!inputElement.files || inputElement.files.length === 0) return;
-        const file = inputElement.files[0]; const formData = new FormData();
-        formData.append('sender', currentUser); formData.append('room', currentRoomId); formData.append('type', 'file'); formData.append('media', file, file.name);
-        if(quotedMessageId) { formData.append('quoteId', quotedMessageId); formData.append('quoteText', quotedMessageText); formData.append('quoteSender', quotedMessageSender); cancelReply(); }
-        fetch('/api/send', { method: 'POST', body: formData }).then(() => { inputElement.value = ''; fetchMessages(); }).catch(err => console.error(err));
+        
+        // ИСПРАВЛЕНИЕ: Берем первый файл из списка [0]
+        const file = inputElement.files[0]; 
+        
+        const formData = new FormData();
+        formData.append('sender', currentUser); 
+        formData.append('room', currentRoomId); 
+        formData.append('type', 'file'); 
+        
+        // Передаем сам файл и его имя
+        formData.append('media', file, file.name);
+        
+        if(quotedMessageId) { 
+            formData.append('quoteId', quotedMessageId); 
+            formData.append('quoteText', quotedMessageText); 
+            formData.append('quoteSender', quotedMessageSender); 
+            cancelReply(); 
+        }
+        
+        // Показываем индикатор загрузки (опционально можно добавить спиннер)
+        console.log("Загрузка файла...");
+        
+        fetch('/api/send', { method: 'POST', body: formData })
+            .then(() => { 
+                inputElement.value = ''; 
+                fetchMessages(); 
+            })
+            .catch(err => {
+                alert("Ошибка отправки файла!");
+                console.error(err);
+            });
     }
+
     function sendMessage() {
         const textInput = document.getElementById('text-input'); const text = textInput.value.trim();
         if (text === '' || !currentUser || !currentRoomId) return;
