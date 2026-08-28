@@ -488,23 +488,36 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    // ЗАМЕНИТЕ ЭТОТ БЛОК В КОНЦЕ server.js:
     if (req.url.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, req.url);
         fs.readFile(filePath, (err, data) => {
             if (err) { res.writeHead(404); return res.end('File Not Found'); }
+            
             let contentType = 'application/octet-stream';
             const ext = path.extname(req.url).toLowerCase();
+            
+            // Жестко прописываем Андроид кодеки, чтобы Chrome сразу понимал что играть
             if (ext === '.mp4') contentType = 'video/mp4';
-            else if (ext === '.webm') contentType = req.url.includes('audio') ? 'audio/webm' : 'video/webm';
+            else if (ext === '.webm') {
+                // Если файл содержит слово audio, отдаем как аудио-вебм, иначе как видео-вебм
+                contentType = req.url.includes('audio') ? 'audio/webm;codecs=opus' : 'video/webm;codecs=vp8,opus';
+            }
             else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
             else if (ext === '.png') contentType = 'image/png';
             else if (ext === '.gif') contentType = 'image/gif';
             else if (ext === '.pdf') contentType = 'application/pdf';
-            res.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'max-age=86400', 'Accept-Ranges': 'bytes' });
+            
+            res.writeHead(200, { 
+                'Content-Type': contentType, 
+                'Cache-Control': 'max-age=86400', 
+                'Accept-Ranges': 'bytes' 
+            });
             res.end(data);
         });
         return;
     }
+
 
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
