@@ -1,1 +1,73 @@
+name: Build Native Fullscreen APK
 
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Set up Professional Java 17 Runtime
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup NodeJS Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Force Create Minimal Web Project Configurations
+        run: |
+          if [ ! -f package.json ]; then
+            echo '{"name":"darknetapp","version":"1.0.0","dependencies":{}}' > package.json
+          fi
+          echo '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>' > index.html
+
+      - name: Install Pure Capacitor Infrastructure
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+
+      - name: Hardcode Fully Configured App Parameters
+        run: |
+          echo '{
+            "appId": "com.darknet.zone",
+            "appName": "DarknetZone",
+            "webDir": ".",
+            "server": {
+              "url": "https://onrender.com",
+              "cleartext": true
+            }
+          }' > capacitor.config.json
+
+      - name: Build and Sync Android Native Layout Folder
+        run: |
+          npx cap integrity || true
+          npx cap add android
+          npx cap sync android
+
+      - name: Inject Strict Iron-Clad Hardware Permissions
+        run: |
+          PERMISSIONS='<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'
+          sed -i "s|<application|$PERMISSIONS\n    <application|g" android/app/src/main/AndroidManifest.xml
+
+      - name: Run Auto-Compile Gradle Script
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload Finished Deployment APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DarknetZone-Native-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
