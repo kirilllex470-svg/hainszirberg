@@ -19,7 +19,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '17' # Explicit target to prevent module mismatches
 
       - name: Setup NodeJS Environment
         uses: actions/setup-node@v4
@@ -31,7 +31,6 @@ jobs:
           if [ ! -f package.json ]; then
             echo '{"name":"darknetapp","version":"1.0.0","dependencies":{}}' > package.json
           fi
-          # Create a separate isolated dummy directory for Capacitor web assets
           mkdir -p www
           echo '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>' > www/index.html
 
@@ -60,6 +59,12 @@ jobs:
         run: |
           PERMISSIONS='<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'
           sed -i "s|<application|$PERMISSIONS\n    <application|g" android/app/src/main/AndroidManifest.xml
+
+      - name: Force Java 17 Module Matching
+        run: |
+          # Overwrites internal module configurations to resolve compatibility blocks
+          sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' android/app/build.gradle || true
+          sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' android/build.gradle || true
 
       - name: Run Auto-Compile Gradle Script
         run: |
