@@ -27,14 +27,13 @@ jobs:
 
       - name: Initialize TWA Project
         run: |
-          # Создаем конфиг для TWA вручную, чтобы не отвечать на вопросы
           mkdir twa-project
           cd twa-project
           
-          # Генерируем ключ подписи на лету
+          # Generate signing certificate keys instantly on the fly
           keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
           
-          # Создаем манифест сборки
+          # Inject your exact platform parameters manifest configuration
           echo '{
             "packageId": "com.darknet.zone.twa",
             "host": "://onrender.com",
@@ -57,14 +56,15 @@ jobs:
             "generatorApp": "bubblewrap-cli"
           }' > twa-manifest.json
 
-      - name: Build APK
+      - name: Build APK (Bypassing Prompts Automatically)
         run: |
           cd twa-project
-          # Запускаем сборку. Bubblewrap сам скачает SDK и соберет APK.
-          bubblewrap build --skipPwaValidation --manifest twa-manifest.json
+          # CRITICAL FIX: --yes forces Bubblewrap to accept tools setup without freezing
+          bubblewrap build --yes --skipPwaValidation --manifest twa-manifest.json
 
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
         with:
           name: DarknetZone-Chrome-APK
           path: twa-project/app-release-signed.apk
+
