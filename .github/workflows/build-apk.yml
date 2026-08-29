@@ -31,7 +31,9 @@ jobs:
           if [ ! -f package.json ]; then
             echo '{"name":"darknetapp","version":"1.0.0","dependencies":{}}' > package.json
           fi
-          echo '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>' > index.html
+          # Create a separate isolated dummy directory for Capacitor web assets
+          mkdir -p www
+          echo '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>' > www/index.html
 
       - name: Install Pure Capacitor Infrastructure
         run: |
@@ -42,7 +44,7 @@ jobs:
           echo '{
             "appId": "com.darknet.zone",
             "appName": "DarknetZone",
-            "webDir": ".",
+            "webDir": "www",
             "server": {
               "url": "https://onrender.com",
               "cleartext": true
@@ -51,7 +53,6 @@ jobs:
 
       - name: Build and Sync Android Native Layout Folder
         run: |
-          npx cap integrity || true
           npx cap add android
           npx cap sync android
 
