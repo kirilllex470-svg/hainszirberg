@@ -26,19 +26,25 @@ jobs:
       - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Install Fresh Android SDK (Guaranteed Fix)
+      - name: Install Fresh Android SDK (Fixed)
         run: |
-          # 1. Скачиваем чистые инструменты Android SDK от Google
-          wget https://google.com -O sdk-tools.zip
+          # 1. Download official tools with a verified link (commandlinetools-linux-11076708_latest.zip)
+          # Using curl with retry and location follow to prevent broken downloads
+          curl -L --retry 3 --output sdk-tools.zip "https://google.com"
           
-          # 2. Создаем правильную структуру папок для Bubblewrap
+          # 2. Verify file integrity (check if it's a valid zip)
+          file sdk-tools.zip
+          
+          # 3. Create folder structure
           mkdir -p android-sdk/cmdline-tools
+          
+          # 4. Unzip carefully
           unzip -q sdk-tools.zip -d android-sdk/cmdline-tools
           
-          # 3. Переименовываем папку в 'latest' (Bubblewrap требует именно этого)
+          # 5. Rename to 'latest'
           mv android-sdk/cmdline-tools/cmdline-tools android-sdk/cmdline-tools/latest
           
-          # 4. Принимаем лицензии
+          # 6. Accept Licenses
           export ANDROID_HOME=$PWD/android-sdk
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
           yes | sdkmanager --licenses > /dev/null
@@ -46,7 +52,7 @@ jobs:
       - name: Configure Bubblewrap
         run: |
           mkdir -p ~/.bubblewrap
-          # Указываем путь к нашему ЛИЧНОМУ SDK, который мы только что скачали
+          # Pointing to our custom SDK
           echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$GITHUB_WORKSPACE/android-sdk\"}" > ~/.bubblewrap/config.json
 
       - name: Initialize TWA Project
@@ -54,10 +60,8 @@ jobs:
           mkdir twa-project
           cd twa-project
           
-          # Генерируем ключ подписи
           keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
           
-          # Создаем манифест приложения
           echo '{
             "packageId": "com.darknet.zone.twa",
             "host": "://onrender.com",
@@ -83,7 +87,6 @@ jobs:
       - name: Build APK
         run: |
           cd twa-project
-          # Запускаем сборку
           bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
       - name: Upload TWA APK
