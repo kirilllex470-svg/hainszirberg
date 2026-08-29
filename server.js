@@ -356,54 +356,63 @@ const server = http.createServer((req, res) => {
         return;
     }
     // ФУНКЦИЯ ТРИГГЕРА: Рассылает системные пуши на зарегистрированные телефоны участников
-    function triggerPushNotifications(room, sender, text, type) {
-        let targetUsers = [];
-        
-        // 1. Если это конференция, пушим всем участникам
-        if (groupsDB[room]) {
-            targetUsers = groupsDB[room].members.map(m => m.toLowerCase());
-        } else {
-            // 2. Если личный чат, парсим имена из ID комнаты
-            const names = room.split('_');
-            if (names.length > 0) {
-                // Извлекаем имена из названия комнаты (сортированный массив по логике клиента)
-                // Пример строки комнаты: user1,user2_user1,user2
-                const cleanNames = names[0].split(',');
-                targetUsers = cleanNames.map(n => n.toLowerCase());
-            }
+// НАЙДИТЕ ФУНКЦИЮ triggerPushNotifications В server.js И ЗАМЕНИТЕ ЕЁ ЦЕЛИКОМ:
+function triggerPushNotifications(room, sender, text, type) {
+    let targetUsers = [];
+    
+    // 1. Если это конференция, пушим всем участникам
+    if (groupsDB[room]) {
+        targetUsers = groupsDB[room].members.map(m => m.toLowerCase());
+    } else {
+        // 2. Если личный чат, парсим имена из ID комнаты
+        const names = room.split('_');
+        if (names.length > 0) {
+            const cleanNames = names[0].split(',');
+            targetUsers = cleanNames.map(n => n.toLowerCase());
         }
-
-        // Форматируем красивый текст для шторки в зависимости от типа сообщения
-        let cleanText = text || '';
-        if (type === 'audio') cleanText = "🎙️ Голосовое сообщение";
-        if (type === 'video') cleanText = "🎥 Видео-кружок";
-        if (type === 'file') cleanText = "📎 Отправил файл";
-
-        const pushPayload = JSON.stringify({
-            title: `Новое от ${sender}`,
-            body: cleanText,
-            room: room
-        });
-
-        // 3. Отправляем пуш-запросы всем, кроме самого отправителя
-        targetUsers.forEach(userKey => {
-            if (userKey !== sender.toLowerCase() && subscriptionsDB[userKey]) {
-                // Фильтруем просроченные/удаленные токены на лету
-                subscriptionsDB[userKey] = subscriptionsDB[userKey].filter(sub => {
-                    webpush.sendNotification(sub, pushPayload)
-                        .catch(err => {
-                            // Если пуш-сервер (Google/Apple) говорит, что токен умер (410 или 404), удаляем его из БД
-                            if (err.statusCode === 410 || err.statusCode === 404) {
-                                return false; 
-                            }
-                            console.error("Ошибка отправки пуша:", err.message);
-                        });
-                    return true;
-                });
-            }
-        });
-        writeJSON(SUBSCRIPTIONS_FILE, subscriptionsDB);
     }
+
+    // Форматируем красивый текст для шторки в зависимости от типа сообщения
+    let cleanText = text || '';
+    if (type === 'audio') cleanText = "🎙️ Голосовое сообщение";
+    if (type === 'video') cleanText = "🎥 Видео-кружок";
+    if (type === 'file') cleanText = "📎 Отправил файл";
+
+    const pushPayload = JSON.stringify({
+        title: `Новое от ${sender}`,
+        body: cleanText,
+        room: room
+    });
+
+    // Настройки высокой важности для пробития спящего режима Android / Oppo
+    const pushOptions = {
+        timeToLive: 2419200, // Хранить пуш на серверах Google 4 недели, если телефон выключен
+        urgency: 'high',     // Просить Android доставить пуш немедленно, игнорируя режим сна
+        topic: 'chat-messages'
+    };
+
+    // 3. Рассылаем пуши по всем сохраненным устройствам пользователя
+    targetUsers.forEach(userKey => {
+        if (userKey !== sender.toLowerCase() && subscriptionsDB[userKey]) {
+            
+            // Фильтруем и удаляем только реально «мертвые» токены
+            subscriptionsDB[userKey] = subscriptionsDB[userKey].filter(sub => {
+                // Передаем pushOptions третьим параметром
+                webpush.sendNotification(sub, pushPayload, pushOptions)
+                    .catch(err => {
+                        if (err.statusCode === 410 || err.statusCode === 404) {
+                            // Токен окончательно удален пользователем -> стираем из БД
+                            return false; 
+                        }
+                        console.error("Ошибка отправки пуша:", err.message);
+                    });
+                return true;
+            });
+        }
+    });
+    writeJSON(SUBSCRIPTIONS_FILE, subscriptionsDB);
+}
+
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
