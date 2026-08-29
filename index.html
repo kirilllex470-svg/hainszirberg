@@ -19,20 +19,7 @@
         #auth-error { color: #f43f5e; font-size: 14px; margin-bottom: 12px; display: none; }
         #app-screen { display: none; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); position: relative; flex-direction: row; overflow: hidden; }
         .sidebar { width: 32%; min-width: 300px; height: 100%; background: #0f172a; border-right: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-direction: column; z-index: 5; transition: transform 0.25s ease-in-out; }
-        .sidebar-header { 
-    background: rgba(30, 41, 59, 0.5); 
-    /* Automatically adds safe padding on top based on your device glass cutout */
-    padding-top: max(12px, env(safe-area-inset-top));
-    height: auto; /* Changed from fixed 60px to adapt to padding variations */
-    min-height: 60px;
-    padding-left: 16px;
-    padding-right: 16px;
-    display: flex; 
-    align-items: center; 
-    justify-content: space-between; 
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
-}
-
+        .sidebar-header { background: rgba(30, 41, 59, 0.5); height: 60px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
         .sidebar-user { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 15px; color: #f8fafc; min-width: 0; flex: 1; }
         .sidebar-user span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .logout-btn { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; flex-shrink: 0; }
@@ -67,28 +54,8 @@
         .unread-badge { background: #00a884; color: white; font-size: 11px; font-weight: bold; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .delete-friend-btn { background: transparent; border: none; color: #64748b; font-size: 20px; cursor: pointer; padding: 0 4px; }
         .chat-area { flex: 1; display: flex; flex-direction: column; background: rgba(15, 23, 42, 0.2); height: 100%; overflow: hidden; position: relative; }
-        .chat-header { 
-    background: rgba(30, 41, 59, 0.4); 
-    /* Dynamically evaluates the thickness of your phone notch and adds spacing */
-    padding-top: max(12px, env(safe-area-inset-top));
-    height: auto; /* Changed from fixed 60px to prevent layout squeezing */
-    min-height: 60px; 
-    display: flex; 
-    align-items: center; 
-    padding-left: 16px;
-    padding-right: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
-}
-        .back-btn { 
-    display: none; 
-    color: #00a884; 
-    background: transparent; 
-    border: none; 
-    font-size: 26px; /* Slightly enlarged for easier hitting on small screens */
-    margin-right: 12px; 
-    cursor: pointer; 
-    padding: 8px; /* Increased hit-box zone so it is easy to touch */
-}
+        .chat-header { background: rgba(30, 41, 59, 0.4); height: 60px; min-height: 60px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .back-btn { display: none; color: #00a884; background: transparent; border: none; font-size: 24px; margin-right: 12px; cursor: pointer; padding: 4px; }
         .avatar { width: 38px; height: 38px; background: linear-gradient(135deg, #00a884, #0284c7); border-radius: 12px; display: flex; justify-content: center; align-items: center; color: white; font-weight: 600; text-transform: uppercase; flex-shrink: 0; font-size: 14px; }
         .user-info { min-width: 0; margin-left: 12px; }
         .partner-title { color: #f8fafc; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -338,41 +305,19 @@ function showChat() {
     
     // ЖЕСТКИЙ ТРИГГЕР: Каждое открытие чата полностью обновляет ключи в фоне
     if ('serviceWorker' in navigator) {
-     // Native Device Wrapper Core Notification Interceptor
-function initializeNativePushRouting() {
-    // 1. Intercept incoming live payloads when the app is actively running on your screen
-    window.addEventListener('push', (e) => {
-        console.log('App intercepted live server payload data:', e);
-    });
-
-    // 2. Request native platform-level notification permissions from the Android OS
-    fetch('/api/push/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            user: currentUser,
-            subscription: {
-                endpoint: "https://googleapis.com" + currentUser.toLowerCase(),
-                keys: { p256dh: "native", auth: "native" }
-            }
-        })
-    }).then(() => console.log('App wrapper registry successfully linked to data cluster'));
-}
-
-// Runtime environment detection logic
-if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-    console.log('Running inside native wrapper framework. Routing alerts to core hardware.');
-    // Delay initialization slightly to let your authentication components load smoothly
-    setTimeout(() => { if (currentUser) initializeNativePushRouting(); }, 1000);
-} else {
-    // Standard backup fallback loop specifically for ordinary mobile browser clients
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(reg => {
-            if (Notification.permission === 'granted' && currentUser) subscribeToPushNotifications(reg);
+        navigator.serviceWorker.ready.then(reg => {
+            // Принудительно отписываем от старого токена и берем новый
+            reg.pushManager.getSubscription().then(sub => {
+                if (sub) {
+                    sub.unsubscribe().then(() => {
+                        subscribeToPushNotifications(reg);
+                    });
+                } else {
+                    subscribeToPushNotifications(reg);
+                }
+            });
         });
     }
-}
-
 
     if (!updateInterval) { 
         updateInterval = setInterval(() => {
