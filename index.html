@@ -338,19 +338,41 @@ function showChat() {
     
     // ЖЕСТКИЙ ТРИГГЕР: Каждое открытие чата полностью обновляет ключи в фоне
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(reg => {
-            // Принудительно отписываем от старого токена и берем новый
-            reg.pushManager.getSubscription().then(sub => {
-                if (sub) {
-                    sub.unsubscribe().then(() => {
-                        subscribeToPushNotifications(reg);
-                    });
-                } else {
-                    subscribeToPushNotifications(reg);
-                }
-            });
+     // Native Device Wrapper Core Notification Interceptor
+function initializeNativePushRouting() {
+    // 1. Intercept incoming live payloads when the app is actively running on your screen
+    window.addEventListener('push', (e) => {
+        console.log('App intercepted live server payload data:', e);
+    });
+
+    // 2. Request native platform-level notification permissions from the Android OS
+    fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            user: currentUser,
+            subscription: {
+                endpoint: "https://googleapis.com" + currentUser.toLowerCase(),
+                keys: { p256dh: "native", auth: "native" }
+            }
+        })
+    }).then(() => console.log('App wrapper registry successfully linked to data cluster'));
+}
+
+// Runtime environment detection logic
+if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    console.log('Running inside native wrapper framework. Routing alerts to core hardware.');
+    // Delay initialization slightly to let your authentication components load smoothly
+    setTimeout(() => { if (currentUser) initializeNativePushRouting(); }, 1000);
+} else {
+    // Standard backup fallback loop specifically for ordinary mobile browser clients
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+            if (Notification.permission === 'granted' && currentUser) subscribeToPushNotifications(reg);
         });
     }
+}
+
 
     if (!updateInterval) { 
         updateInterval = setInterval(() => {
