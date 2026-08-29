@@ -76,8 +76,10 @@ const server = http.createServer((req, res) => {
                     const userKey = user.toLowerCase();
                     if (!subscriptionsDB[userKey]) subscriptionsDB[userKey] = [];
                     
+                    // Проверяем, нет ли уже ТОЧНО такого же девайса в базе
                     const exists = subscriptionsDB[userKey].some(s => s.endpoint === subscription.endpoint);
                     if (!exists) {
+                        // Добавляем устройство в массив (теперь их может быть много)
                         subscriptionsDB[userKey].push(subscription);
                         writeJSON(SUBSCRIPTIONS_FILE, subscriptionsDB);
                     }
@@ -89,6 +91,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
 
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
