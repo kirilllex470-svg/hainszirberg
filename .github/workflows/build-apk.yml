@@ -19,7 +19,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21' # Поднимаем версию Java до 21, чтобы сойтись с Capacitor
+          java-version: '21'
 
       - name: Setup NodeJS Environment
         uses: actions/setup-node@v4
@@ -60,11 +60,26 @@ jobs:
           PERMISSIONS='<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'
           sed -i "s|<application|$PERMISSIONS\n    <application|g" android/app/src/main/AndroidManifest.xml
 
-      - name: Force Clean Build Repositories Mirrors
+      - name: Inject Mirror Repositories and Kotlin Module Substitutions
         run: |
-          # Настраиваем чистые зеркала репозиториев, чтобы обойти ошибку 429 (Too Many Requests)
+          # 1. Configures redundant mirrors to clear 429 server bottlenecks
           MIRRORS="buildscript { repositories { google(); mavenCentral(); maven { url 'https://gradle.org' } } }\nallprojects { repositories { google(); mavenCentral(); maven { url 'https://gradle.org' } } }"
           echo -e "$MIRRORS\n$(cat android/build.gradle)" > android/build.gradle
+          
+          # 2. Converts your Kotlin module rules into valid Groovy layout configuration syntax
+          MODULE_FIX="subprojects {
+              dependencies {
+                  modules {
+                      module('org.jetbrains.kotlin:kotlin-stdlib-jdk7') {
+                          replacedBy('org.jetbrains.kotlin:kotlin-stdlib', 'Use newer kotlin-stdlib instead')
+                      }
+                      module('org.jetbrains.kotlin:kotlin-stdlib-jdk8') {
+                          replacedBy('org.jetbrains.kotlin:kotlin-stdlib', 'Use newer kotlin-stdlib instead')
+                      }
+                  }
+              }
+          }"
+          echo -e "$MODULE_FIX" >> android/build.gradle
 
       - name: Run Auto-Compile Gradle Script
         run: |
