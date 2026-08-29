@@ -19,7 +19,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17' # Explicit target to prevent module mismatches
+          java-version: '17'
 
       - name: Setup NodeJS Environment
         uses: actions/setup-node@v4
@@ -60,11 +60,15 @@ jobs:
           PERMISSIONS='<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'
           sed -i "s|<application|$PERMISSIONS\n    <application|g" android/app/src/main/AndroidManifest.xml
 
-      - name: Force Java 17 Module Matching
+      - name: Force Java 17 Global Injection Script
         run: |
-          # Overwrites internal module configurations to resolve compatibility blocks
-          sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' android/app/build.gradle || true
-          sed -i 's/JavaVersion.VERSION_21/JavaVersion.VERSION_17/g' android/build.gradle || true
+          # Этот скрипт принудительно заставляет ВСЕ модули компилироваться под Java 17, игнорируя их личные настройки
+          echo "allprojects {
+              tasks.withType(JavaCompile) {
+                  sourceCompatibility = '17'
+                  targetCompatibility = '17'
+              }
+          }" >> android/build.gradle
 
       - name: Run Auto-Compile Gradle Script
         run: |
