@@ -26,12 +26,26 @@ jobs:
       - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Pre-configure Bubblewrap Paths (Dynamic)
+      - name: Fix Android SDK Structure for Bubblewrap
+        run: |
+          # Исправляем ошибку "androidSdk isn't correct"
+          # Bubblewrap ищет папку 'latest', а на GitHub лежат версии. Создаем ссылку вручную.
+          cd $ANDROID_HOME/cmdline-tools
+          if [ ! -d "latest" ]; then
+            LATEST_VER=$(ls -d * | sort -V | tail -n1)
+            ln -s "$LATEST_VER" latest
+          fi
+
+      - name: Accept Android Licenses
+        run: |
+          # Автоматически принимаем все лицензии Google, чтобы сборка не зависла
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+
+      - name: Configure Bubblewrap
         run: |
           mkdir -p ~/.bubblewrap
-          # ВАЖНО: Используем системную переменную $ANDROID_SDK_ROOT вместо жесткого пути
-          # Это гарантирует, что Bubblewrap найдет правильный SDK, где бы он ни лежал
-          echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
+          # Прописываем пути жестко, используя системные переменные GitHub
+          echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
       - name: Initialize TWA Project
         run: |
@@ -64,11 +78,11 @@ jobs:
             "generatorApp": "bubblewrap-cli"
           }' > twa-manifest.json
 
-      - name: Build TWA APK (Auto-Accept Licenses)
+      - name: Build APK
         run: |
           cd twa-project
-          # Добавляем команду "yes", чтобы автоматически принять любые лицензионные соглашения SDK
-          yes | bubblewrap build --skipPwaValidation --manifest twa-manifest.json
+          # Запускаем сборку (теперь она не упадет, так как пути исправлены)
+          bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
