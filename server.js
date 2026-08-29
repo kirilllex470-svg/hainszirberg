@@ -385,11 +385,13 @@ function triggerPushNotifications(room, sender, text, type) {
     });
 
     // Настройки высокой важности для пробития спящего режима Android / Oppo
+    // НАЙДИТЕ И ЗАМЕНИТЕ ЭТОТ БЛОК ВНУТРИ triggerPushNotifications:
     const pushOptions = {
-        timeToLive: 2419200, // Хранить пуш на серверах Google 4 недели, если телефон выключен
-        urgency: 'high',     // Просить Android доставить пуш немедленно, игнорируя режим сна
+        TTL: 2419200,      // ИСПРАВЛЕНО: 'timeToLive' заменено на 'TTL' (в секундах — 4 недели)
+        urgency: 'high',   // Просить Android доставить пуш немедленно, игнорируя режим сна
         topic: 'chat-messages'
     };
+
 
     // 3. Рассылаем пуши по всем сохраненным устройствам пользователя
     targetUsers.forEach(userKey => {
