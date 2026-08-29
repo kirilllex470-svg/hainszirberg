@@ -1,16 +1,25 @@
 {
-  "short_name": "Chat",
-  "name": "My Messenger",
+  "name": "Goosebumps Premium DarknetZone",
+  "short_name": "DarknetZone",
+  "description": "Premium encrypted real-time chat network",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#00a884",
+  "orientation": "portrait",
+  "categories": ["social", "utilities"],
   "icons": [
     {
-      "src": "https://flaticon.com",
+      "src": "/uploads/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/uploads/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": "/index.html",
-  "background_color": "#ffffff",
-  "theme_color": "#007bff",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }
