@@ -26,53 +26,38 @@ jobs:
       - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Global Gradle Network Fix
+      - name: Install Fresh Android SDK (Guaranteed Fix)
         run: |
-          # 1. Отключаем анимацию загрузки, чтобы лог не зависал на 72%
-          mkdir -p ~/.gradle
-          echo "org.gradle.console=plain" > ~/.gradle/gradle.properties
-          echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+          # 1. Скачиваем чистые инструменты Android SDK от Google
+          wget https://google.com -O sdk-tools.zip
           
-          # 2. Создаем глобальный скрипт инициализации, который заставит ВСЕ сборки использовать зеркала
-          # Это решит проблему с зависанием "Fetch remote repository"
-          echo "allprojects {
-              buildscript {
-                  repositories {
-                      google()
-                      mavenCentral()
-                      maven { url 'https://gradle.org' }
-                  }
-              }
-              repositories {
-                  google()
-                  mavenCentral()
-                  maven { url 'https://gradle.org' }
-              }
-          }" > ~/.gradle/init.gradle
-
-      - name: Fix Android SDK Structure
-        run: |
-          cd $ANDROID_HOME/cmdline-tools
-          if [ ! -d "latest" ]; then
-            LATEST_VER=$(ls -d * | sort -V | tail -n1)
-            ln -s "$LATEST_VER" latest
-          fi
-
-      - name: Accept Licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          # 2. Создаем правильную структуру папок для Bubblewrap
+          mkdir -p android-sdk/cmdline-tools
+          unzip -q sdk-tools.zip -d android-sdk/cmdline-tools
+          
+          # 3. Переименовываем папку в 'latest' (Bubblewrap требует именно этого)
+          mv android-sdk/cmdline-tools/cmdline-tools android-sdk/cmdline-tools/latest
+          
+          # 4. Принимаем лицензии
+          export ANDROID_HOME=$PWD/android-sdk
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
+          yes | sdkmanager --licenses > /dev/null
 
       - name: Configure Bubblewrap
         run: |
           mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+          # Указываем путь к нашему ЛИЧНОМУ SDK, который мы только что скачали
+          echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$GITHUB_WORKSPACE/android-sdk\"}" > ~/.bubblewrap/config.json
 
       - name: Initialize TWA Project
         run: |
           mkdir twa-project
           cd twa-project
           
+          # Генерируем ключ подписи
           keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
           
+          # Создаем манифест приложения
           echo '{
             "packageId": "com.darknet.zone.twa",
             "host": "://onrender.com",
@@ -95,10 +80,10 @@ jobs:
             "generatorApp": "bubblewrap-cli"
           }' > twa-manifest.json
 
-      - name: Build APK (Verbose Mode)
+      - name: Build APK
         run: |
           cd twa-project
-          # Запускаем сборку. Благодаря настройкам выше, мы увидим реальный текст вместо полоски.
+          # Запускаем сборку
           bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
       - name: Upload TWA APK
