@@ -60,9 +60,13 @@ jobs:
           PERMISSIONS='<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'
           sed -i "s|<application|$PERMISSIONS\n    <application|g" android/app/src/main/AndroidManifest.xml
 
-      - name: Force Java 17 Global Injection Script
+      - name: Force Java 17 Global Injection & Mirror Repositories
         run: |
-          # Этот скрипт принудительно заставляет ВСЕ модули компилироваться под Java 17, игнорируя их личные настройки
+          # 1. Overrides server connection bottlenecks using redundant global mirrors
+          MIRRORS="buildscript { repositories { google(); mavenCentral(); maven { url 'https://gradle.org' } } }\nallprojects { repositories { google(); mavenCentral(); maven { url 'https://gradle.org' } } }"
+          echo -e "$MIRRORS\n$(cat android/build.gradle)" > android/build.gradle
+          
+          # 2. Enforces uniform Java 17 source rules to prevent type blocks
           echo "allprojects {
               tasks.withType(JavaCompile) {
                   sourceCompatibility = '17'
@@ -74,7 +78,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload Finished Deployment APK
         uses: actions/upload-artifact@v4
