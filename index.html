@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    <link rel="manifest" href="/manifest.json">
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Goosebumps Premium</title>
@@ -721,6 +723,12 @@ function showChat() {
     }
 
     function playVideoWithSound(v) { if (!v.muted) { v.muted = true; v.loop = true; v.play(); } else { v.muted = false; v.loop = false; v.currentTime = 0; v.play(); v.onended = function() { v.muted = true; v.loop = true; v.currentTime = 0; v.play(); }; } }
+</script>
+      if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(() => console.log('PWA Service Worker зарегистрирован!'))
+      .catch(err => console.log('Ошибка SW:', err));
+  }
 </script>
 </body>
 </html>
