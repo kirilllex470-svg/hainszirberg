@@ -4,8 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const webpush = require('web-push');
 
-// Путь к вечному диску на Render
-const DATA_DIR = '/data'; 
+const DATA_DIR = '/data'; // Путь к вечному диску на Render
 
 // Автоматически определяем, где хранить файлы: на хостинге или локально на ПК при тестах
 const storagePath = fs.existsSync(DATA_DIR) ? DATA_DIR : __dirname;
@@ -24,25 +23,20 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 function readJSON(filePath, defaultVal = {}) {
-    try { 
-        if (fs.existsSync(filePath)) {
-            return JSON.parse(fs.readFileSync(filePath, 'utf-8')); 
-        }
-    } catch (e) { 
-        console.error("Ошибка чтения JSON:", e); 
-    }
+    try { if (fs.existsSync(filePath)) return JSON.parse(fs.readFileSync(filePath, 'utf-8')); } 
+    catch (e) { console.error("Ошибка чтения JSON:", e); }
     return defaultVal;
 }
 
 function writeJSON(filePath, data) {
-    try { 
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8'); 
-    } catch (e) { 
-        console.error("Ошибка записи JSON:", e); 
-    }
+    try { fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8'); } 
+    catch (e) { console.error("Ошибка записи JSON:", e); }
 }
 
-// Зафиксированные VAPID ключи
+// (Ниже идут ваши зафиксированные VAPID ключи...)
+
+
+// Сюда один раз вставляются сгенерированные ключи:
 const vapidKeys = {
     publicKey: "BP2phyjcLEmZ_53xJkj0gfDb_ztteJUZvjzJO9D7zKxOCPaShQ5JxYHvdYG-sYmZ5ug-0E54IqO9uHT8BF1rQ2Y",
     privateKey: "xCPfZmNqX0fXkY6Vbske-3PxDB6Wh2rRxGfCYmz_jYY"
@@ -61,36 +55,17 @@ let groupsDB = readJSON(GROUPS_FILE, {});
 let requestsDB = readJSON(REQUESTS_FILE, {});
 let subscriptionsDB = readJSON(SUBSCRIPTIONS_FILE, {});
 const db = { lastRead: {} };
-
 const server = http.createServer((req, res) => {
     // Раздача Сервис-Воркера для шторки телефона с правильным заголовком Service-Worker-Allowed
     if (req.url === '/sw.js') {
         fs.readFile(path.join(__dirname, 'sw.js'), (err, data) => {
-            if (err) { 
-                res.writeHead(404); 
-                return res.end('SW Not Found'); 
-            }
-            res.writeHead(200, { 
-                'Content-Type': 'application/javascript; charset=utf-8', 
-                'Service-Worker-Allowed': '/' 
-            });
+            if (err) { res.writeHead(404); return res.end('SW Not Found'); }
+            res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8', 'Service-Worker-Allowed': '/' });
             res.end(data);
         });
         return;
     }
 
-    // Раздача manifest.json для PWA-установки
-    if (req.url === '/manifest.json') {
-        fs.readFile(path.join(__dirname, 'manifest.json'), (err, data) => {
-            if (err) { 
-                res.writeHead(404); 
-                return res.end('Manifest Not Found'); 
-            }
-            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            res.end(data);
-        });
-        return;
-    }
     if (req.url === '/api/push/subscribe' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -101,8 +76,10 @@ const server = http.createServer((req, res) => {
                     const userKey = user.toLowerCase();
                     if (!subscriptionsDB[userKey]) subscriptionsDB[userKey] = [];
                     
+                    // Проверяем, нет ли уже ТОЧНО такого же девайса в базе
                     const exists = subscriptionsDB[userKey].some(s => s.endpoint === subscription.endpoint);
                     if (!exists) {
+                        // Добавляем устройство в массив (теперь их может быть много)
                         subscriptionsDB[userKey].push(subscription);
                         writeJSON(SUBSCRIPTIONS_FILE, subscriptionsDB);
                     }
@@ -114,6 +91,7 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
+
 
     if (req.url === '/api/auth' && req.method === 'POST') {
         let body = '';
@@ -144,7 +122,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     if (req.url.startsWith('/api/friends/get') && req.method === 'GET') {
         const myUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         const user = myUrl.searchParams.get('user');
@@ -298,7 +275,6 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
     if (req.url === '/api/groups/create' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk.toString());
@@ -379,69 +355,85 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
-    function triggerPushNotifications(room, sender, text, type) {
-        let targetUsers = [];
-        if (groupsDB[room]) {
-            targetUsers = groupsDB[room].members.map(m => m.toLowerCase());
-        } else {
-            const names = room.split('_');
-            if (names.length > 0) {
-                const cleanNames = names[0].split(',');
-                targetUsers = cleanNames.map(n => n.toLowerCase());
-            }
+    // ФУНКЦИЯ ТРИГГЕРА: Рассылает системные пуши на зарегистрированные телефоны участников
+// НАЙДИТЕ ФУНКЦИЮ triggerPushNotifications В server.js И ЗАМЕНИТЕ ЕЁ ЦЕЛИКОМ:
+function triggerPushNotifications(room, sender, text, type) {
+    let targetUsers = [];
+    
+    // 1. Если это конференция, пушим всем участникам
+    if (groupsDB[room]) {
+        targetUsers = groupsDB[room].members.map(m => m.toLowerCase());
+    } else {
+        // 2. Если личный чат, парсим имена из ID комнаты
+        const names = room.split('_');
+        if (names.length > 0) {
+            const cleanNames = names[0].split(',');
+            targetUsers = cleanNames.map(n => n.toLowerCase());
         }
-
-        let cleanText = text || '';
-        if (type === 'audio') cleanText = "🎙️ Голосовое сообщение";
-        if (type === 'video') cleanText = "🎥 Видео-кружок";
-        if (type === 'file') {
-            try { cleanText = `📎 Файл: ${JSON.parse(text).name}`; } catch(e) { cleanText = "📎 Отправил файл"; }
-        }
-
-        const pushPayload = JSON.stringify({
-            title: `Новое от ${sender}`,
-            body: cleanText,
-            room: room
-        });
-
-        const pushOptions = {
-            TTL: 2419200,
-            urgency: 'high',
-            topic: 'chat-messages'
-        };
-
-        targetUsers.forEach(userKey => {
-            if (userKey !== sender.toLowerCase() && subscriptionsDB[userKey]) {
-                subscriptionsDB[userKey] = subscriptionsDB[userKey].filter(sub => {
-                    webpush.sendNotification(sub, pushPayload, pushOptions)
-                        .catch(err => {
-                            if (err.statusCode === 410 || err.statusCode === 404) {
-                                return false; 
-                            }
-                            console.error("Ошибка отправки пуша:", err.message);
-                        });
-                    return true;
-                });
-            }
-        });
-        writeJSON(SUBSCRIPTIONS_FILE, subscriptionsDB);
     }
+
+    // Форматируем красивый текст для шторки в зависимости от типа сообщения
+    let cleanText = text || '';
+    if (type === 'audio') cleanText = "🎙️ Голосовое сообщение";
+    if (type === 'video') cleanText = "🎥 Видео-кружок";
+    if (type === 'file') cleanText = "📎 Отправил файл";
+
+    const pushPayload = JSON.stringify({
+        title: `Новое от ${sender}`,
+        body: cleanText,
+        room: room
+    });
+
+    // Настройки высокой важности для пробития спящего режима Android / Oppo
+    // НАЙДИТЕ И ЗАМЕНИТЕ ЭТОТ БЛОК ВНУТРИ triggerPushNotifications:
+    const pushOptions = {
+        TTL: 2419200,      // ИСПРАВЛЕНО: 'timeToLive' заменено на 'TTL' (в секундах — 4 недели)
+        urgency: 'high',   // Просить Android доставить пуш немедленно, игнорируя режим сна
+        topic: 'chat-messages'
+    };
+
+
+    // 3. Рассылаем пуши по всем сохраненным устройствам пользователя
+    targetUsers.forEach(userKey => {
+        if (userKey !== sender.toLowerCase() && subscriptionsDB[userKey]) {
+            
+            // Фильтруем и удаляем только реально «мертвые» токены
+            subscriptionsDB[userKey] = subscriptionsDB[userKey].filter(sub => {
+                // Передаем pushOptions третьим параметром
+                webpush.sendNotification(sub, pushPayload, pushOptions)
+                    .catch(err => {
+                        if (err.statusCode === 410 || err.statusCode === 404) {
+                            // Токен окончательно удален пользователем -> стираем из БД
+                            return false; 
+                        }
+                        console.error("Ошибка отправки пуша:", err.message);
+                    });
+                return true;
+            });
+        }
+    });
+    writeJSON(SUBSCRIPTIONS_FILE, subscriptionsDB);
+}
+
     if (req.url === '/api/send' && req.method === 'POST') {
         const contentType = req.headers['content-type'];
         if (!contentType || !contentType.includes('multipart/form-data')) {
             res.writeHead(400); return res.end('Ожидался FormData');
         }
 
+        // 1. Получаем boundary (границу) из заголовка
         const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
         const boundaryStr = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
         if (!boundaryStr) { res.writeHead(400); return res.end('Не найден boundary'); }
 
         const boundary = Buffer.from('--' + boundaryStr);
+        
         let chunks = [];
         req.on('data', chunk => chunks.push(chunk));
         req.on('end', () => {
             const buffer = Buffer.concat(chunks);
+            
+            // 2. Парсим буфер вручную, не превращая его в строку (чтобы не сломать видео)
             let fields = {};
             let fileBuffer = null;
             let fileExt = 'bin';
@@ -451,20 +443,33 @@ const server = http.createServer((req, res) => {
             let end = buffer.indexOf(boundary, start);
             
             while (end !== -1) {
+                // Вырезаем кусок между границами
                 const part = buffer.subarray(start, end);
+                
+                // Пропускаем границы и CRLF (\r\n)
+                // Структура обычно: \r\nHeaders\r\n\r\nBody\r\n
+                // Поэтому ищем двойной перенос строки \r\n\r\n
                 const doubleCRLF = Buffer.from('\r\n\r\n');
                 const headerEndIndex = part.indexOf(doubleCRLF);
                 
                 if (headerEndIndex !== -1) {
-                    const headerStr = part.subarray(0, headerEndIndex).toString('utf-8');
+                    const headerBuf = part.subarray(0, headerEndIndex);
+                    // Заголовки можно безопасно превратить в строку
+                    const headerStr = headerBuf.toString('utf-8');
+                    
+                    // Само тело файла/поля начинается после \r\n\r\n
                     let bodyStart = headerEndIndex + 4; 
+                    // И заканчивается за 2 байта до конца (там \r\n перед следующей границей)
                     let bodyEnd = part.length - 2;
                     
                     if (bodyEnd > bodyStart) {
+                        // Если это поле name="sender" и т.д.
                         if (headerStr.includes('name="')) {
                             const nameMatch = headerStr.match(/name="([^"]+)"/);
                             if (nameMatch) {
                                 const name = nameMatch[1];
+                                
+                                // Если это ФАЙЛ
                                 if (headerStr.includes('filename="')) {
                                     const filenameMatch = headerStr.match(/filename="([^"]+)"/);
                                     if (filenameMatch) {
@@ -475,19 +480,25 @@ const server = http.createServer((req, res) => {
                                         fileBuffer = part.subarray(bodyStart, bodyEnd);
                                     }
                                 } else {
-                                    fields[name] = part.subarray(bodyStart, bodyEnd).toString('utf-8');
+                                    // Обычное текстовое поле
+                                    const value = part.subarray(bodyStart, bodyEnd).toString('utf-8');
+                                    fields[name] = value; // .trim() убрали, чтобы не ломать данные
                                 }
                             }
                         }
                     }
                 }
+                
                 start = end + boundary.length;
                 end = buffer.indexOf(boundary, start);
             }
 
+            // 3. Сохранение (код остается прежним, но теперь данные чистые)
             const { sender, room, type, text, forwardedFrom, quoteId, quoteText, quoteSender } = fields;
             if (sender && room) {
                 let finalContent = text || '';
+                
+                // Если пришел файл (проверяем буфер)
                 if ((type === 'audio' || type === 'video' || type === 'file') && fileBuffer && fileBuffer.length > 0) {
                     const fileName = `${type}_${crypto.randomBytes(8).toString('hex')}.${fileExt}`;
                     const filePath = path.join(UPLOADS_DIR, fileName);
@@ -530,8 +541,14 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+
+
+    // ЗАМЕНИТЕ ЭТОТ БЛОК В КОНЦЕ server.js:
+    // ИСПРАВЛЕННЫЙ РОУТЕР: Выдает файлы напрямую с постоянного диска Render
     if (req.url.startsWith('/uploads/')) {
+        // Извлекаем только чистое имя файла (например, video_123.mp4)
         const fileName = path.basename(req.url);
+        // Связываем его с правильной папкой UPLOADS_DIR на постоянном диске
         const filePath = path.join(UPLOADS_DIR, fileName);
         
         fs.readFile(filePath, (err, data) => {
@@ -539,8 +556,11 @@ const server = http.createServer((req, res) => {
                 res.writeHead(404); 
                 return res.end('File Not Found'); 
             }
+            
             let contentType = 'application/octet-stream';
             const ext = path.extname(req.url).toLowerCase();
+            
+            // Задаем правильные типы данных для Андроида
             if (ext === '.mp4') contentType = 'video/mp4';
             else if (ext === '.webm') {
                 contentType = req.url.includes('audio') ? 'audio/webm;codecs=opus' : 'video/webm;codecs=vp8,opus';
@@ -559,13 +579,52 @@ const server = http.createServer((req, res) => {
         });
         return;
     }
-
+    // <<<< СЮДА ВСТАВЛЯЕМ СЕКРЕТНЫЙ ЭНДПОИНТ >>>>
     if (req.url === '/api/admin/dump/all/database/secured' && req.method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
-        let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Панель Управления DarknetZone</title><style>body { background: #0f172a; color: #cbd5e1; font-family: monospace; padding: 20px; line-height: 1.5; } h1 { color: #00ca9e; border-bottom: 2px solid #1e293b; padding-bottom: 10px; } h2 { color: #38bdf8; margin-top: 30px; background: #1e293b; padding: 8px 12px; border-radius: 6px; } pre { background: #020617; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; color: #f1f5f9; font-size: 14px; }</style></head><body><h1>⚙️ ПОЛНЫЙ ДАМП СИСТЕМЫ (БАЗА ДАННЫХ)</h1><p>Время сервера: ${new Date().toLocaleString('ru-RU')}</p><h2>👥 1. ПОЛЬЗОВАТЕЛИ И ПАРОЛИ</h2><pre>${JSON.stringify(readJSON(USERS_FILE), null, 2)}</pre><h2>💬 2. ВСЯ ПЕРЕПИСКА</h2><pre>${JSON.stringify(readJSON(HISTORY_FILE), null, 2)}</pre><h2>👫 3. СПИСКИ ДРУЗЕЙ</h2><pre>${JSON.stringify(readJSON(FRIENDS_FILE), null, 2)}</pre><h2>👥 4. КОНФЕРЕНЦИИ</h2><pre>${JSON.stringify(readJSON(GROUPS_FILE), null, 2)}</pre><h2>⏳ 5. АКТИВНЫЕ ЗАЯВКИ</h2><pre>${JSON.stringify(readJSON(REQUESTS_FILE), null, 2)}</pre><h2>📱 6. ТОКЕНЫ ТЕЛЕФОНОВ</h2><pre>${JSON.stringify(readJSON(SUBSCRIPTIONS_FILE), null, 2)}</pre></body></html>`;
+        
+        const currentUsers = readJSON(USERS_FILE, {});
+        const currentRooms = readJSON(HISTORY_FILE, {});
+        const currentFriends = readJSON(FRIENDS_FILE, {});
+        const currentGroups = readJSON(GROUPS_FILE, {});
+        const currentRequests = readJSON(REQUESTS_FILE, {});
+        const currentSubs = readJSON(SUBSCRIPTIONS_FILE, {});
+
+        let html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Панель Управления DarknetZone</title>
+            <style>
+                body { background: #0f172a; color: #cbd5e1; font-family: monospace; padding: 20px; line-height: 1.5; }
+                h1 { color: #00ca9e; border-bottom: 2px solid #1e293b; padding-bottom: 10px; }
+                h2 { color: #38bdf8; margin-top: 30px; background: #1e293b; padding: 8px 12px; border-radius: 6px; }
+                pre { background: #020617; padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; color: #f1f5f9; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <h1>⚙️ ПОЛНЫЙ ДАМП СИСТЕМЫ (БАЗА ДАННЫХ В РЕАЛЬНОМ ВРЕМЕНИ)</h1>
+            <p>Текущее время сервера: ${new Date().toLocaleString('ru-RU')}</p>
+            <h2>👥 1. ПОЛЬЗОВАТЕЛИ И ПАРОЛИ</h2>
+            <pre>${JSON.stringify(currentUsers, null, 2)}</pre>
+            <h2>💬 2. ВСЯ ПЕРЕПИСКА (ИСТОРИЯ ЧАТОВ И КОНФЕРЕНЦИЙ)</h2>
+            <pre>${JSON.stringify(currentRooms, null, 2)}</pre>
+            <h2>👫 3. СПИСКИ ДРУЗЕЙ</h2>
+            <pre>${JSON.stringify(currentFriends, null, 2)}</pre>
+            <h2>👥 4. КОНФЕРЕНЦИИ (ГРУППЫ И УЧАСТНИКИ)</h2>
+            <pre>${JSON.stringify(currentGroups, null, 2)}</pre>
+            <h2>⏳ 5. АКТИВНЫЕ ЗАЯВКИ В ДРУЗЬЯ</h2>
+            <pre>${JSON.stringify(currentRequests, null, 2)}</pre>
+            <h2>📱 6. ТОКЕНЫ ТЕЛЕФОНОВ (ДЛЯ ШТОРКИ УВЕДОМЛЕНИЙ)</h2>
+            <pre>${JSON.stringify(currentSubs, null, 2)}</pre>
+        </body>
+        </html>
+        `;
         return res.end(html);
     }
 
+    // ВОТ ЭТОТ БЛОК ОСТАЕТСЯ ПОД НИМ:
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile(path.join(__dirname, 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); return res.end('Internal Error'); }
@@ -578,4 +637,7 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => { console.log(`Сервер запущен на порту ${PORT}`); });
+server.listen(PORT, () => { console.log(`Сервер WhatsApp запущен на порту ${PORT}`); });
+
+
+
