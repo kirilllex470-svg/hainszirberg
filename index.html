@@ -301,11 +301,19 @@ function showChat() {
     document.getElementById('my-name').textContent = currentUser;
     document.getElementById('my-avatar').textContent = currentUser.substring(0,2);
     
-    // ДОБАВЬТЕ ЭТУ СТРОЧКУ СЮДА:
-    // Она заставит телефон друга принудительно обновить токен в базе при открытии чата
+    // ЖЕСТКИЙ ТРИГГЕР: Каждое открытие чата полностью обновляет ключи в фоне
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(reg => {
-            subscribeToPushNotifications(reg); 
+            // Принудительно отписываем от старого токена и берем новый
+            reg.pushManager.getSubscription().then(sub => {
+                if (sub) {
+                    sub.unsubscribe().then(() => {
+                        subscribeToPushNotifications(reg);
+                    });
+                } else {
+                    subscribeToPushNotifications(reg);
+                }
+            });
         });
     }
 
@@ -317,6 +325,7 @@ function showChat() {
     }
     loadFriendsAndRequests();
 }
+
 
 
     function loadFriendsAndRequests() {
