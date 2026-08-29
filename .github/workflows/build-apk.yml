@@ -26,27 +26,22 @@ jobs:
       - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Pre-configure Bubblewrap Environment Paths
+      - name: Pre-configure Bubblewrap Paths (Dynamic)
         run: |
-          # Create Bubblewrap config directory manually
           mkdir -p ~/.bubblewrap
-          
-          # Force feed Bubblewrap the pre-installed Java paths from GitHub Actions 
-          # so it never triggers the interactive terminal questionnaire prompt
-          echo "{
-            \"jdkPath\": \"${{ steps.setup-java.outputs.path }}\",
-            \"androidSdkPath\": \"/usr/local/lib/android/sdk\"
-          }" > ~/.bubblewrap/config.json
+          # ВАЖНО: Используем системную переменную $ANDROID_SDK_ROOT вместо жесткого пути
+          # Это гарантирует, что Bubblewrap найдет правильный SDK, где бы он ни лежал
+          echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
 
       - name: Initialize TWA Project
         run: |
           mkdir twa-project
           cd twa-project
           
-          # Generate signing certificate keys instantly on the fly
+          # Генерируем ключи подписи
           keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
           
-          # Inject your exact platform parameters manifest configuration
+          # Создаем манифест
           echo '{
             "packageId": "com.darknet.zone.twa",
             "host": "://onrender.com",
@@ -69,11 +64,11 @@ jobs:
             "generatorApp": "bubblewrap-cli"
           }' > twa-manifest.json
 
-      - name: Build TWA App Binary
+      - name: Build TWA APK (Auto-Accept Licenses)
         run: |
           cd twa-project
-          # Compiles the signed APK directly using our pre-mapped environment files
-          bubblewrap build --skipPwaValidation --manifest twa-manifest.json
+          # Добавляем команду "yes", чтобы автоматически принять любые лицензионные соглашения SDK
+          yes | bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
