@@ -1,95 +1,70 @@
-name: Build Native Fullscreen APK
+name: Build Chrome-TWA APK
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
-  build:
+  build-twa:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Modern Java 21 Runtime
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '21'
+          java-version: '17'
 
-      - name: Setup NodeJS Environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Force Create Minimal Web Project Configurations
-        run: |
-          if [ ! -f package.json ]; then
-            echo '{"name":"darknetapp","version":"1.0.0","dependencies":{}}' > package.json
-          fi
-          mkdir -p www
-          echo '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>' > www/index.html
+      - name: Install Google Bubblewrap
+        run: npm install -g @bubblewrap/cli
 
-      - name: Install Pure Capacitor Infrastructure
+      - name: Initialize TWA Project
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-
-      - name: Hardcode Fully Configured App Parameters
-        run: |
-          echo '{
-            "appId": "com.darknet.zone",
-            "appName": "DarknetZone",
-            "webDir": "www",
-            "server": {
-              "url": "https://hainszirberg.onrender.com/",
-              "cleartext": true,
-              "allowNavigation": ["*"]
-            },
-            "plugins": {
-              "PushNotifications": {
-                "presentationOptions": ["badge", "sound", "alert"]
-              }
-            }
-          }' > capacitor.config.json
-
-      - name: Build and Sync Android Native Layout Folder
-        run: |
-          npx cap add android
-          npx cap sync android
-
-      - name: Inject Strict Iron-Clad Hardware Permissions
-        run: |
-          # Добавляем POST_NOTIFICATIONS, VIBRATE и WAKE_LOCK для гарантии работы уведомлений
-          PERMISSIONS='<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />'
-          sed -i "s|<application|$PERMISSIONS\n    <application|g" android/app/src/main/AndroidManifest.xml
-
-      - name: Inject Mirror Repositories and Kotlin Module Substitutions
-        run: |
-          MIRRORS="buildscript { repositories { google(); mavenCentral(); maven { url 'https://gradle.org' } } }\nallprojects { repositories { google(); mavenCentral(); maven { url 'https://gradle.org' } } }"
-          echo -e "$MIRRORS\n$(cat android/build.gradle)" > android/build.gradle
+          # Создаем конфиг для TWA вручную, чтобы не отвечать на вопросы
+          mkdir twa-project
+          cd twa-project
           
-          MODULE_FIX="subprojects {
-              dependencies {
-                  modules {
-                      module('org.jetbrains.kotlin:kotlin-stdlib-jdk7') { replacedBy('org.jetbrains.kotlin:kotlin-stdlib', 'Use newer kotlin-stdlib instead') }
-                      module('org.jetbrains.kotlin:kotlin-stdlib-jdk8') { replacedBy('org.jetbrains.kotlin:kotlin-stdlib', 'Use newer kotlin-stdlib instead') }
-                  }
-              }
-          }"
-          echo -e "$MODULE_FIX" >> android/build.gradle
+          # Генерируем ключ подписи на лету
+          keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
+          
+          # Создаем манифест сборки
+          echo '{
+            "packageId": "com.darknet.zone.twa",
+            "host": "://onrender.com",
+            "name": "DarknetZone",
+            "launcherName": "Darknet",
+            "themeColor": "#0f172a",
+            "navigationColor": "#0f172a",
+            "backgroundColor": "#0f172a",
+            "enableNotifications": true,
+            "startUrl": "/",
+            "iconUrl": "https://://onrender.com/uploads/icon-512.png",
+            "maskableIconUrl": "https://://onrender.com/uploads/icon-512.png",
+            "splashScreenUrl": "https://://onrender.com/uploads/icon-512.png",
+            "display": "standalone",
+            "orientation": "portrait",
+            "signingKey": {
+              "path": "./android.keystore",
+              "alias": "android"
+            },
+            "generatorApp": "bubblewrap-cli"
+          }' > twa-manifest.json
 
-      - name: Run Auto-Compile Gradle Script
+      - name: Build APK
         run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          cd twa-project
+          # Запускаем сборку. Bubblewrap сам скачает SDK и соберет APK.
+          bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
-      - name: Upload Finished Deployment APK
+      - name: Upload TWA APK
         uses: actions/upload-artifact@v4
         with:
-          name: DarknetZone-Native-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: DarknetZone-Chrome-APK
+          path: twa-project/app-release-signed.apk
