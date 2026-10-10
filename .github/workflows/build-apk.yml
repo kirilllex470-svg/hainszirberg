@@ -7,19 +7,19 @@ on:
 
 jobs:
   build-twa:
-    runs-on: ubuntu-24.04 # Оставляем стабильную убунту
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
 
-      # ИСПРАВЛЕНИЕ 1: Версия v5, как просил лог
+      # Ставим Java 17 (стандарт)
       - name: Setup Java 17
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # ИСПРАВЛЕНИЕ 2: Node.js (предупреждение может остаться, это норма для 2026, но работать будет)
+      # Ставим Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -28,28 +28,32 @@ jobs:
       - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      # Установка SDK (чтобы не качал сам)
+      # Устанавливаем Android Tools и лицензии
       - name: Install Android Build Tools
         run: |
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin
           yes | sdkmanager --licenses || echo "Licenses accepted"
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
+      # ФИКС 1: Железобетонная настройка конфига
+      # Мы берем путь к Java и Android прямо из системы ($JAVA_HOME), чтобы Bubblewrap не смел спрашивать
       - name: Configure Bubblewrap
         run: |
           mkdir -p ~/.bubblewrap
-          echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+          echo "Using JAVA_HOME: $JAVA_HOME"
+          echo "{\"jdkPath\": \"$JAVA_HOME\", \"androidSdkPath\": \"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
+          # Выводим конфиг в лог, чтобы убедиться, что он создался
+          cat ~/.bubblewrap/config.json
 
       - name: Initialize TWA Project
         run: |
           mkdir twa-project
           cd twa-project
           
-          # 1. Создаем ключ с паролем 123456
           keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
           
-          # 2. ГЛАВНОЕ ИСПРАВЛЕНИЕ: ПЕРЕДАЕМ ПАРОЛИ ПРЯМО В JSON
-          # Без полей keyPassword и storePassword он зависает (Exit 130)
+          # Генерируем манифест с ПАРОЛЯМИ (чтобы не спрашивал при сборке)
+          # Я оставил рабочую иконку Google для теста. Если есть своя прямая ссылка — поменяй.
           echo '{
             "packageId": "com.darknet.zone.twa",
             "host": "msb55115.ucoz.club",
@@ -74,11 +78,13 @@ jobs:
             "generatorApp": "bubblewrap-cli"
           }' > twa-manifest.json
 
+      # ФИКС 2: Принудительный ввод (printf)
+      # Если он спросит "Скачать Java? (Y/n)", мы автоматически вводим "n", а затем путь к Java.
+      # Это заткнет интерактивный режим.
       - name: Build APK
         run: |
           cd twa-project
-          # Флаг --skipPwaValidation пропускает проверку сайта (чтобы не падал, если сайт недоступен)
-          bubblewrap build --skipPwaValidation --manifest twa-manifest.json
+          printf "n\n$JAVA_HOME\n" | bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
