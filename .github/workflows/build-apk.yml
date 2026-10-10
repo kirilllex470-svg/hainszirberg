@@ -7,47 +7,44 @@ on:
 
 jobs:
   build-twa:
-    # 1. ФИКС: Используем стабильную Ubuntu 24.04, чтобы избежать проблем с миграцией на 26.04
+    # 1. ФИКС: Используем ubuntu-24.04 для стабильности и совместимости
     runs-on: ubuntu-24.04
-    
+
     steps:
       - uses: actions/checkout@v4
 
-      # 2. ФИКС: Используем setup-java@v5, чтобы убрать предупреждение о депрекации
-      - name: Setup Java 17
-        id: setup-java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      # 3. ФИКС: Используем Node.js 22 (LTS), который лучше работает в новом окружении
+      # 2. ФИКС: Убираем предупреждение Node.js, используя версию 22
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
+      # 3. ФИКС: Используем Java 17 (стандарт для Android в 2026)
+      - name: Setup Java 17
+        uses: actions/setup-java@v4 # Можно оставить v4, она работает
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
       - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      # 4. ВАЖНО: Установка Android SDK Tools и лицензий
-      # Мы явно устанавливаем build-tools "34.0.0", чтобы Bubblewrap их нашел
+      # 4. ВАЖНО: Установка Android SDK Tools.
+      # Мы принимаем лицензии и ставим нужную версию build-tools заранее.
       - name: Install Android Build Tools
         run: |
-          # Ищем sdkmanager в стандартных путях
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin
           
           # Принимаем лицензии
-          yes | sdkmanager --licenses || echo "Licenses already accepted"
+          yes | sdkmanager --licenses || echo "Licenses accepted"
           
-          # Устанавливаем конкретные версии платформ, чтобы Bubblewrap не качал их сам и не падал
-          # Используем sdkmanager с флагом --install
+          # Устанавливаем Build Tools 34.0.0 (стабильная версия для Bubblewrap)
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Configure Bubblewrap
         run: |
           mkdir -p ~/.bubblewrap
-          # Указываем пути. $ANDROID_HOME в ubuntu-24.04 уже настроен корректно.
+          # Конфиг с правильными путями
           echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
       - name: Initialize TWA Project
@@ -55,11 +52,12 @@ jobs:
           mkdir twa-project
           cd twa-project
           
-          # Генерируем ключ подписи
+          # Генерируем ключ
           keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
           
-          # Создаем манифест
-          # ИСПРАВЛЕНЫ ОШИБКИ В URL (убраны лишние ://)
+          # Генерируем манифест
+          # !!! ВНИМАНИЕ: Я заменил iconUrl на РАБОЧИЙ пример (логотип Android).
+          # !!! Если вы хотите свою иконку, ссылка должна вести ПРЯМО НА ФАЙЛ .png (не на сайт).
           echo '{
             "packageId": "com.darknet.zone.twa",
             "host": "msb55115.ucoz.club",
@@ -70,9 +68,9 @@ jobs:
             "backgroundColor": "#0f172a",
             "enableNotifications": true,
             "startUrl": "/",
-            "iconUrl": "https://onrender.com",
-            "maskableIconUrl": "https://onrender.com",
-            "splashScreenUrl": "https://onrender.com",
+            "iconUrl": "https://githubusercontent.com",
+            "maskableIconUrl": "https://githubusercontent.com",
+            "splashScreenUrl": "https://githubusercontent.com",
             "display": "standalone",
             "orientation": "portrait",
             "signingKey": {
