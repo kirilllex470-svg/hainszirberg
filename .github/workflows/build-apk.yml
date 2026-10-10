@@ -7,11 +7,13 @@ on:
 
 jobs:
   build-twa:
-    runs-on: ubuntu-latest
+    # 1. ФИКС: Используем стабильную Ubuntu 24.04, чтобы избежать проблем с миграцией на 26.04
+    runs-on: ubuntu-24.04
+    
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Используем актуальную версию setup-java (v5) для 2026 года
+      # 2. ФИКС: Используем setup-java@v5, чтобы убрать предупреждение о депрекации
       - name: Setup Java 17
         id: setup-java
         uses: actions/setup-java@v5
@@ -19,33 +21,33 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # 2. Обновляем Node.js действия до v5 (или актуальной)
+      # 3. ФИКС: Используем Node.js 22 (LTS), который лучше работает в новом окружении
       - name: Setup Node.js
-        uses: actions/setup-node@v4  # Если v5 недоступна, v4 будет работать с предупреждением, но надежно
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      # 3. КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Надежный поиск и принятие лицензий
-      # Вместо ручного поиска пути мы используем встроенный sdkmanager из PATH
-      - name: Accept Android Licenses
+      # 4. ВАЖНО: Установка Android SDK Tools и лицензий
+      # Мы явно устанавливаем build-tools "34.0.0", чтобы Bubblewrap их нашел
+      - name: Install Android Build Tools
         run: |
-          # Пытаемся найти sdkmanager в стандартных путях, если его нет в PATH
-          if ! command -v sdkmanager &> /dev/null; then
-              export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin
-          fi
+          # Ищем sdkmanager в стандартных путях
+          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin
           
-          # Принимаем все лицензии
-          yes | sdkmanager --licenses || echo "Licenses accepted or warning ignored"
+          # Принимаем лицензии
+          yes | sdkmanager --licenses || echo "Licenses already accepted"
+          
+          # Устанавливаем конкретные версии платформ, чтобы Bubblewrap не качал их сам и не падал
+          # Используем sdkmanager с флагом --install
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
-      # 4. Настройка Bubblewrap с явными путями
       - name: Configure Bubblewrap
         run: |
           mkdir -p ~/.bubblewrap
-          # Генерируем конфиг, используя путь Java из шага setup-java
-          # ANDROID_HOME всегда установлен на ubuntu-latest
+          # Указываем пути. $ANDROID_HOME в ubuntu-24.04 уже настроен корректно.
           echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
       - name: Initialize TWA Project
@@ -53,11 +55,11 @@ jobs:
           mkdir twa-project
           cd twa-project
           
-          # Генерируем ключ (Keystore)
+          # Генерируем ключ подписи
           keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
           
-          # Генерируем манифест
-          # ВАЖНО: Исправлен host (без https://) и iconUrl (без лишних двоеточий)
+          # Создаем манифест
+          # ИСПРАВЛЕНЫ ОШИБКИ В URL (убраны лишние ://)
           echo '{
             "packageId": "com.darknet.zone.twa",
             "host": "msb55115.ucoz.club",
@@ -83,6 +85,7 @@ jobs:
       - name: Build APK
         run: |
           cd twa-project
+          # Запускаем сборку
           bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
       - name: Upload TWA APK
