@@ -67,7 +67,7 @@ jobs:
           # Создаем манифест
           echo '{
             "packageId": "com.darknet.zone.twa",
-            "host": "://onrender.com",
+            "host": "://msb55115.ucoz.club",
             "name": "DarknetZone",
             "launcherName": "Darknet",
             "themeColor": "#0f172a",
