@@ -11,6 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 1. Настраиваем Java 17 (нужна для новых Android build tools)
       - name: Setup Java 17
         id: setup-java
         uses: actions/setup-java@v4
@@ -18,56 +19,41 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      # 2. Настраиваем Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      # 3. Устанавливаем Bubblewrap CLI
       - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Install Fresh Android SDK (Stable Version)
+      # 4. Принимаем лицензии Android SDK (используем встроенный в Github SDK)
+      - name: Accept Android Licenses
         run: |
-          # 1. Скачиваем проверенную версию инструментов (v10406996), которая точно доступна
-          wget -q https://google.com -O sdk-tools.zip
-          
-          # 2. Создаем структуру папок
-          mkdir -p android-sdk/cmdline-tools
-          
-          # 3. Распаковываем
-          unzip -q sdk-tools.zip
-          
-          # 4. Перемещаем в папку 'latest' (это критически важно для работы инструментов)
-          mv cmdline-tools android-sdk/cmdline-tools/latest
-          
-          # 5. Настраиваем переменные и принимаем лицензии
-          export ANDROID_HOME=$PWD/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin
-          
-          # Принимаем лицензии заранее
-          yes | sdkmanager --licenses > /dev/null
-          
-          # Устанавливаем базовые платформы, чтобы Bubblewrap не качал их сам
-          yes | sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" > /dev/null
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses
 
+      # 5. Конфигурируем Bubblewrap, указывая на системные пути Github Runner'а
       - name: Configure Bubblewrap
         run: |
           mkdir -p ~/.bubblewrap
-          # Указываем путь к нашему ТОЛЬКО ЧТО созданному SDK
-          echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$GITHUB_WORKSPACE/android-sdk\"}" > ~/.bubblewrap/config.json
+          # Используем переменные среды, которые уже есть в ubuntu-latest
+          echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
+      # 6. Инициализируем проект (ИСПРАВЛЕНЫ URL и HOST)
       - name: Initialize TWA Project
         run: |
           mkdir twa-project
           cd twa-project
           
-          # Генерируем ключи
+          # Генерируем ключ
           keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
           
-          # Создаем манифест
+          # Создаем манифест. ОБРАТИТЕ ВНИМАНИЕ: исправлены host и iconUrl
           echo '{
             "packageId": "com.darknet.zone.twa",
-            "host": "://msb55115.ucoz.club",
+            "host": "msb55115.ucoz.club",
             "name": "DarknetZone",
             "launcherName": "Darknet",
             "themeColor": "#0f172a",
@@ -75,9 +61,9 @@ jobs:
             "backgroundColor": "#0f172a",
             "enableNotifications": true,
             "startUrl": "/",
-            "iconUrl": "https://://onrender.com/uploads/icon-512.png",
-            "maskableIconUrl": "https://://onrender.com/uploads/icon-512.png",
-            "splashScreenUrl": "https://://onrender.com/uploads/icon-512.png",
+            "iconUrl": "https://onrender.com",
+            "maskableIconUrl": "https://onrender.com",
+            "splashScreenUrl": "https://onrender.com",
             "display": "standalone",
             "orientation": "portrait",
             "signingKey": {
@@ -87,12 +73,13 @@ jobs:
             "generatorApp": "bubblewrap-cli"
           }' > twa-manifest.json
 
+      # 7. Сборка
       - name: Build APK
         run: |
           cd twa-project
-          # Запускаем сборку
           bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
+      # 8. Загрузка результата
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
         with:
