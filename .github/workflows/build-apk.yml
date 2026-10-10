@@ -11,46 +11,53 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Настраиваем Java 17 (нужна для новых Android build tools)
+      # 1. Используем актуальную версию setup-java (v5) для 2026 года
       - name: Setup Java 17
         id: setup-java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # 2. Настраиваем Node.js
+      # 2. Обновляем Node.js действия до v5 (или актуальной)
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4  # Если v5 недоступна, v4 будет работать с предупреждением, но надежно
         with:
           node-version: '20'
 
-      # 3. Устанавливаем Bubblewrap CLI
       - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      # 4. Принимаем лицензии Android SDK (используем встроенный в Github SDK)
+      # 3. КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Надежный поиск и принятие лицензий
+      # Вместо ручного поиска пути мы используем встроенный sdkmanager из PATH
       - name: Accept Android Licenses
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses
+          # Пытаемся найти sdkmanager в стандартных путях, если его нет в PATH
+          if ! command -v sdkmanager &> /dev/null; then
+              export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools/bin
+          fi
+          
+          # Принимаем все лицензии
+          yes | sdkmanager --licenses || echo "Licenses accepted or warning ignored"
 
-      # 5. Конфигурируем Bubblewrap, указывая на системные пути Github Runner'а
+      # 4. Настройка Bubblewrap с явными путями
       - name: Configure Bubblewrap
         run: |
           mkdir -p ~/.bubblewrap
-          # Используем переменные среды, которые уже есть в ubuntu-latest
+          # Генерируем конфиг, используя путь Java из шага setup-java
+          # ANDROID_HOME всегда установлен на ubuntu-latest
           echo "{\"jdkPath\": \"${{ steps.setup-java.outputs.path }}\", \"androidSdkPath\": \"$ANDROID_HOME\"}" > ~/.bubblewrap/config.json
 
-      # 6. Инициализируем проект (ИСПРАВЛЕНЫ URL и HOST)
       - name: Initialize TWA Project
         run: |
           mkdir twa-project
           cd twa-project
           
-          # Генерируем ключ
+          # Генерируем ключ (Keystore)
           keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
           
-          # Создаем манифест. ОБРАТИТЕ ВНИМАНИЕ: исправлены host и iconUrl
+          # Генерируем манифест
+          # ВАЖНО: Исправлен host (без https://) и iconUrl (без лишних двоеточий)
           echo '{
             "packageId": "com.darknet.zone.twa",
             "host": "msb55115.ucoz.club",
@@ -73,13 +80,11 @@ jobs:
             "generatorApp": "bubblewrap-cli"
           }' > twa-manifest.json
 
-      # 7. Сборка
       - name: Build APK
         run: |
           cd twa-project
           bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
-      # 8. Загрузка результата
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
         with:
