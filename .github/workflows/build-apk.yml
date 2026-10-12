@@ -7,87 +7,46 @@ on:
 
 jobs:
   build-twa:
-    runs-on: ubuntu-24.04
-
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # 1. Настройка Java 17
       - name: Setup Java 17
+        id: setup-java
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
-
-      # 2. Настройка Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      # 3. ФИКС: Используем специальный экшен для настройки Android окружения
-      # Он сам найдет правильные пути и выставит ANDROID_SDK_ROOT
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      # 4. ФИКС: Явно устанавливаем компоненты, которые ищет Bubblewrap
-      # Без этого он скажет "SDK isn't correct"
-      - name: Install Android SDK packages
-        run: |
-          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-
-      - name: Install Bubblewrap
+@@ -25,6 +26,18 @@
+      - name: Install Google Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      # 5. ФИКС: Конфигурация через ANDROID_SDK_ROOT
-      - name: Configure Bubblewrap
+      - name: Pre-configure Bubblewrap Environment Paths
         run: |
+          # Create Bubblewrap config directory manually
           mkdir -p ~/.bubblewrap
-          # Используем переменную, которую настроил setup-android
-          echo "{\"jdkPath\": \"$JAVA_HOME\", \"androidSdkPath\": \"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
-          # Выводим конфиг для проверки
-          cat ~/.bubblewrap/config.json
+          
+          # Force feed Bubblewrap the pre-installed Java paths from GitHub Actions 
+          # so it never triggers the interactive terminal questionnaire prompt
+          echo "{
+            \"jdkPath\": \"${{ steps.setup-java.outputs.path }}\",
+            \"androidSdkPath\": \"/usr/local/lib/android/sdk\"
+          }" > ~/.bubblewrap/config.json
 
       - name: Initialize TWA Project
         run: |
           mkdir twa-project
-          cd twa-project
-          
-          # Генерируем ключ
-          keytool -genkeypair -dname "cn=Darknet, ou=Zone, o=DarknetZone, c=US" -alias android -keypass 123456 -keystore android.keystore -storepass 123456 -keyalg RSA -keysize 2048 -validity 10000
-          
-          # Генерируем манифест С ПАРОЛЯМИ (важно!)
-          # Я оставил рабочую иконку Google. Если есть своя прямая ссылка — замените.
-          echo '{
-            "packageId": "com.darknet.zone.twa",
-            "host": "msb55115.ucoz.club",
-            "name": "DarknetZone",
-            "launcherName": "Darknet",
-            "themeColor": "#0f172a",
-            "navigationColor": "#0f172a",
-            "backgroundColor": "#0f172a",
-            "enableNotifications": true,
-            "startUrl": "/",
-            "iconUrl": "https://githubusercontent.com",
-            "maskableIconUrl": "https://githubusercontent.com",
-            "splashScreenUrl": "https://githubusercontent.com",
-            "display": "standalone",
-            "orientation": "portrait",
-            "signingKey": {
-              "path": "./android.keystore",
-              "alias": "android",
-              "keyPassword": "123456",
-              "storePassword": "123456"
-            },
+@@ -56,15 +69,14 @@
             "generatorApp": "bubblewrap-cli"
           }' > twa-manifest.json
 
-      # 6. Сборка с защитой от зависания (printf)
-      - name: Build APK
+      - name: Build APK (Bypassing Prompts Automatically)
+      - name: Build TWA App Binary
         run: |
           cd twa-project
-          # Отвечаем "n" (нет) на вопрос про установку JDK, если он вдруг возникнет
-          printf "n\n$JAVA_HOME\n" | bubblewrap build --skipPwaValidation --manifest twa-manifest.json
+          # CRITICAL FIX: --yes forces Bubblewrap to accept tools setup without freezing
+          bubblewrap build --yes --skipPwaValidation --manifest twa-manifest.json
+          # Compiles the signed APK directly using our pre-mapped environment files
+          bubblewrap build --skipPwaValidation --manifest twa-manifest.json
 
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
